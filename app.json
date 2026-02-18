@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "ScanProof_React_Native",
+    "slug": "ScanProof_React_Native",
+    "version": "1.0.0",
+    "scheme": "scanproof",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.scanproof.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "scanproof",
+              "host": "wallet-callback"
+            }
+          ]
+        }
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "PHANTOM_REDIRECT_URI": "scanproof://wallet-callback",
+      "PHANTOM_APP_URL": "https://scanproof.app",
+      "SOLANA_CLUSTER": "devnet",
+      "SOLANA_RPC_URL": "https://api.devnet.solana.com",
+      "IPFS_UPLOAD_URL": "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+      "IPFS_GATEWAY_URL": "https://gateway.pinata.cloud/ipfs",
+      "PINATA_JWT": ""
+    }
+  }
+}

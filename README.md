@@ -1,0 +1,135 @@
+# ScanProof React Native (Android-first MVP)
+
+## Architecture decisions
+- **Framework**: Expo React Native + TypeScript (strict mode) for fastest Android MVP iteration, with `expo prebuild` support for native deep-link intent generation.
+- **Wallet**: Phantom deeplink protocol (`https://phantom.app/ul/v1`) with encrypted payload exchange, persisted session restore, and signature verification (real connect/sign flow, no mocks in app runtime).
+- **Structure**: Clean separation into `models`, `services`, `hooks`, `state`, `screens`, and `navigation`.
+- **Reliability-first**: explicit app errors, operation timeouts (IPFS/deeplink), safe persistence, and signature verification before accepting sign-in/proof signatures.
+
+## Exact setup commands
+```bash
+# 1) Create and install (already done in this repo, listed for reproducibility)
+npx create-expo-app@latest . --template blank-typescript
+npm install @react-navigation/native @react-navigation/native-stack react-native-screens react-native-safe-area-context @react-native-async-storage/async-storage @solana/web3.js bs58 tweetnacl expo-linking expo-constants js-sha256
+npm install --save-dev jest jest-expo @types/jest @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0
+
+# 2) Validate
+npx tsc --noEmit
+npx jest --runInBand
+
+# 3) Run Android
+npx expo start --android
+
+# Optional native prebuild (recommended for release)
+npx expo prebuild --platform android
+```
+
+## Folder structure
+```text
+.
+├─ App.tsx
+├─ app.json
+├─ index.ts
+├─ package.json
+├─ src
+│  ├─ config
+│  │  └─ env.ts
+│  ├─ hooks
+│  │  ├─ use-proofs.ts
+│  │  └─ use-wallet.ts
+│  ├─ models
+│  │  ├─ proof.ts
+│  │  ├─ signed-payload.ts
+│  │  ├─ verification-result.ts
+│  │  └─ wallet-session.ts
+│  ├─ navigation
+│  │  └─ app-navigator.tsx
+│  ├─ screens
+│  │  ├─ create-proof-screen.tsx
+│  │  ├─ home-screen.tsx
+│  │  ├─ proof-details-screen.tsx
+│  │  ├─ proof-list-screen.tsx
+│  │  ├─ verify-proof-screen.tsx
+│  │  └─ wallet-connect-screen.tsx
+│  ├─ services
+│  │  ├─ index.ts
+│  │  ├─ ipfs
+│  │  │  └─ ipfs-service.ts
+│  │  ├─ proof
+│  │  │  └─ proof-service.ts
+│  │  ├─ solana
+│  │  │  └─ solana-service.ts
+│  │  ├─ storage
+│  │  │  ├─ storage-keys.ts
+│  │  │  └─ storage-service.ts
+│  │  ├─ verification
+│  │  │  └─ verification-service.ts
+│  │  └─ wallet
+│  │     ├─ deep-link-transport.ts
+│  │     ├─ phantom-wallet-service.ts
+│  │     └─ wallet-types.ts
+│  ├─ state
+│  │  └─ app-state.tsx
+│  ├─ types
+│  │  └─ navigation.ts
+│  └─ utils
+│     ├─ canonical-json.ts
+│     ├─ errors.ts
+│     ├─ hash.ts
+│     └─ logger.ts
+└─ tests
+   ├─ integration
+   │  └─ wallet-connect-sign.test.ts
+   ├─ setup.ts
+   └─ unit
+      ├─ hash.test.ts
+      └─ verification.test.ts
+```
+
+## Android config for deep links + wallet integration
+- `app.json` includes:
+  - `scheme`: `scanproof`
+  - Android package: `com.scanproof.mobile`
+  - Intent filter for callback: `scanproof://wallet-callback`
+- Wallet service uses this redirect URI (`PHANTOM_REDIRECT_URI`) for:
+  - `connect`
+  - `signMessage`
+  - `disconnect`
+- Deep link handling uses `expo-linking` URL listener and timeout-protected response waiting.
+
+## Step-by-step run instructions
+1. Install dependencies: `npm install`
+2. Set `app.json` `expo.extra.PINATA_JWT` for real IPFS uploads (required for `uploadProof`).
+3. Ensure Phantom wallet is installed on Android device/emulator.
+4. Start app: `npx expo start --android`
+5. Open **Wallet Connect** screen and tap **Connect + Sign In**.
+6. Approve connection and signature in Phantom.
+7. Back in app, confirm wallet address is shown as connected.
+8. Create proof from **Create Proof** (optionally upload to IPFS).
+9. Verify it from **Verify Proof** using proof id.
+
+## Verification checklist (wallet sign-in)
+- [ ] Android opens Phantom from app via deeplink.
+- [ ] Phantom returns to `scanproof://wallet-callback`.
+- [ ] App decrypts callback and saves `WalletSession`.
+- [ ] App signs sign-in challenge and verifies signature locally.
+- [ ] Force close app and reopen; session restore reconnects from storage.
+- [ ] Disconnect clears local session and wallet state.
+- [ ] Invalid callback / timeout surfaces explicit error message.
+
+## Troubleshooting (Android wallet failures)
+- **Wallet app does not open**
+  - Confirm Phantom installed and deeplink accessible.
+  - Validate `PHANTOM_REDIRECT_URI` and `scheme` are `scanproof://wallet-callback`.
+- **Callback not received**
+  - Ensure intent filter host is exactly `wallet-callback`.
+  - Rebuild native Android app after config changes: `npx expo prebuild --platform android`.
+- **Signature verification fails**
+  - Check clock skew and ensure message bytes are not transformed.
+  - Confirm wallet address/public key and signature are both base58.
+- **Session restore fails**
+  - Stored session may be stale; disconnect and reconnect.
+  - Verify Solana RPC availability (`SOLANA_RPC_URL`).
+- **IPFS upload fails**
+  - Ensure `PINATA_JWT` is configured.
+  - Check network and Pinata endpoint availability.
