@@ -4,8 +4,7 @@ import { ProofService } from './proof/proof-service';
 import { SolanaService } from './solana/solana-service';
 import { StorageService } from './storage/storage-service';
 import { VerificationService } from './verification/verification-service';
-import { ExpoDeepLinkTransport } from './wallet/deep-link-transport';
-import { PhantomWalletService } from './wallet/phantom-wallet-service';
+import { MwaWalletService } from './wallet/mwa-wallet-service';
 
 const storageService = new StorageService();
 const solanaService = new SolanaService(env.solanaRpcUrl);
@@ -16,5 +15,13 @@ export const services = {
   ipfsService: new IpfsService(env.ipfsUploadUrl, env.ipfsGatewayUrl, env.pinataJwt),
   proofService: new ProofService(),
   verificationService: new VerificationService(),
-  walletService: new PhantomWalletService(new ExpoDeepLinkTransport(), storageService, solanaService),
+  walletService: new MwaWalletService(
+    storageService,
+    solanaService,
+    {
+      name: env.phantomAppUrl.replace('https://', '').replace('http://', ''),
+      uri: env.phantomAppUrl,
+      icon: 'favicon.ico',
+    }
+  ),
 };

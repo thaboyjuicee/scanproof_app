@@ -2,15 +2,15 @@
 
 ## Architecture decisions
 - **Framework**: Expo React Native + TypeScript (strict mode) for fastest Android MVP iteration, with `expo prebuild` support for native deep-link intent generation.
-- **Wallet**: Phantom deeplink protocol (`https://phantom.app/ul/v1`) with encrypted payload exchange, persisted session restore, and signature verification (real connect/sign flow, no mocks in app runtime).
+- **Wallet**: Solana Mobile Wallet Adapter (MWA) protocol for universal multi-wallet support (Phantom, Solflare, Backpack, etc.) with encrypted session management and signature verification.
 - **Structure**: Clean separation into `models`, `services`, `hooks`, `state`, `screens`, and `navigation`.
-- **Reliability-first**: explicit app errors, operation timeouts (IPFS/deeplink), safe persistence, and signature verification before accepting sign-in/proof signatures.
+- **Reliability-first**: explicit app errors, operation timeouts (IPFS/wallet), safe persistence, and signature verification before accepting sign-in/proof signatures.
 
 ## Exact setup commands
 ```bash
 # 1) Create and install (already done in this repo, listed for reproducibility)
 npx create-expo-app@latest . --template blank-typescript
-npm install @react-navigation/native @react-navigation/native-stack react-native-screens react-native-safe-area-context @react-native-async-storage/async-storage @solana/web3.js bs58 tweetnacl expo-linking expo-constants js-sha256
+npm install @react-navigation/native @react-navigation/native-stack react-native-screens react-native-safe-area-context @react-native-async-storage/async-storage @solana/web3.js bs58 tweetnacl expo-linking expo-constants js-sha256 @solana-mobile/mobile-wallet-adapter-protocol @solana-mobile/mobile-wallet-adapter-protocol-web3js js-base64
 npm install --save-dev jest jest-expo @types/jest @testing-library/react-native @testing-library/jest-native react-test-renderer@19.1.0
 
 # 2) Validate
@@ -66,6 +66,7 @@ npx expo prebuild --platform android
 │  │  │  └─ verification-service.ts
 │  │  └─ wallet
 │  │     ├─ deep-link-transport.ts
+│  │     ├─ mwa-wallet-service.ts
 │  │     ├─ phantom-wallet-service.ts
 │  │     └─ wallet-types.ts
 │  ├─ state
@@ -86,47 +87,49 @@ npx expo prebuild --platform android
       └─ verification.test.ts
 ```
 
-## Android config for deep links + wallet integration
+## Android config for MWA wallet integration
 - `app.json` includes:
   - `scheme`: `scanproof`
   - Android package: `com.scanproof.mobile`
-  - Intent filter for callback: `scanproof://wallet-callback`
-- Wallet service uses this redirect URI (`PHANTOM_REDIRECT_URI`) for:
-  - `connect`
-  - `signMessage`
-  - `disconnect`
-- Deep link handling uses `expo-linking` URL listener and timeout-protected response waiting.
+  - Intent filter for app deep links: `scanproof://wallet-callback`
+- Wallet service uses Solana Mobile Wallet Adapter (MWA) protocol for:
+  - `authorize` - Connect and authorize with any MWA-compatible wallet
+  - `signMessages` - Sign messages with connected wallet
+  - `deauthorize` - Disconnect and clear session
+- MWA supports multiple wallets: Phantom, Solflare, Backpack, and any MWA-compatible wallet
+- Session management with automatic restore and validation
 
 ## Step-by-step run instructions
 1. Install dependencies: `npm install`
 2. Set `app.json` `expo.extra.PINATA_JWT` for real IPFS uploads (required for `uploadProof`).
-3. Ensure Phantom wallet is installed on Android device/emulator.
+3. Ensure an MWA-compatible wallet (Phantom, Solflare, Backpack, etc.) is installed on Android device/emulator.
 4. Start app: `npx expo start --android`
 5. Open **Wallet Connect** screen and tap **Connect + Sign In**.
-6. Approve connection and signature in Phantom.
+6. Choose your wallet and approve connection and signature.
 7. Back in app, confirm wallet address is shown as connected.
 8. Create proof from **Create Proof** (optionally upload to IPFS).
 9. Verify it from **Verify Proof** using proof id.
 
 ## Verification checklist (wallet sign-in)
-- [ ] Android opens Phantom from app via deeplink.
-- [ ] Phantom returns to `scanproof://wallet-callback`.
-- [ ] App decrypts callback and saves `WalletSession`.
+- [ ] Android opens MWA-compatible wallet app from ScanProof.
+- [ ] Wallet returns authorization response to app.
+- [ ] App saves `WalletSession` with auth token.
 - [ ] App signs sign-in challenge and verifies signature locally.
 - [ ] Force close app and reopen; session restore reconnects from storage.
 - [ ] Disconnect clears local session and wallet state.
-- [ ] Invalid callback / timeout surfaces explicit error message.
+- [ ] Invalid response / timeout surfaces explicit error message.
 
 ## Troubleshooting (Android wallet failures)
 - **Wallet app does not open**
-  - Confirm Phantom installed and deeplink accessible.
-  - Validate `PHANTOM_REDIRECT_URI` and `scheme` are `scanproof://wallet-callback`.
-- **Callback not received**
-  - Ensure intent filter host is exactly `wallet-callback`.
+  - Confirm an MWA-compatible wallet is installed (Phantom, Solflare, Backpack, etc.).
+  - Ensure wallet app is up to date with MWA support.
   - Rebuild native Android app after config changes: `npx expo prebuild --platform android`.
+- **Authorization fails**
+  - Check that wallet app supports the configured cluster (devnet/mainnet).
+  - Ensure app identity configuration is correct in services initialization.
 - **Signature verification fails**
   - Check clock skew and ensure message bytes are not transformed.
-  - Confirm wallet address/public key and signature are both base58.
+  - Confirm wallet address/public key and signature encoding (base58).
 - **Session restore fails**
   - Stored session may be stale; disconnect and reconnect.
   - Verify Solana RPC availability (`SOLANA_RPC_URL`).
