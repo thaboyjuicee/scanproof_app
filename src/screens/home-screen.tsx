@@ -14,6 +14,7 @@ export const HomeScreen = ({ navigation }: Props): React.JSX.Element => {
     { icon: '📝', title: 'Create Proof', desc: 'Generate blockchain-anchored proofs', nav: 'CreateProof' },
     { icon: '✅', title: 'Verify Proof', desc: 'Verify proof authenticity', nav: 'VerifyProof' },
     { icon: '📋', title: 'My Proofs', desc: 'View saved proofs', nav: 'ProofList' },
+    { icon: '📄', title: 'Manual Verify', desc: 'Paste proof data to verify', nav: 'QRScanner' },
     { icon: '🔗', title: 'Wallet', desc: 'Connect and manage wallet', nav: 'WalletConnect' },
   ];
 

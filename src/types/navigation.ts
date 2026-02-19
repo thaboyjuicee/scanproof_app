@@ -7,4 +7,5 @@ export type RootStackParamList = {
   ProofList: undefined;
   ProofDetails: { proof: Proof };
   WalletConnect: undefined;
+  QRScanner: undefined;
 };

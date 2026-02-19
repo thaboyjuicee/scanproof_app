@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { VerificationResult } from '../models/verification-result';
+import { RootStackParamList } from '../types/navigation';
 import { useProofs } from '../hooks/use-proofs';
 
-export const VerifyProofScreen = (): React.JSX.Element => {
+type Props = NativeStackScreenProps<RootStackParamList, 'VerifyProof'>;
+
+export const VerifyProofScreen = ({ navigation }: Props): React.JSX.Element => {
   const { proofs, verifyProof, verifyMultipleProofs } = useProofs();
   const [proofId, setProofId] = useState('');
   const [batchMode, setBatchMode] = useState(false);
@@ -78,6 +82,12 @@ export const VerifyProofScreen = (): React.JSX.Element => {
             onChangeText={setProofId}
             style={styles.input}
           />
+          <TouchableOpacity
+            style={styles.qrScanButton}
+            onPress={() => navigation.navigate('QRScanner')}
+          >
+            <Text style={styles.qrScanButtonText}>� Manual Verify</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -218,6 +228,18 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     backgroundColor: '#fff',
+  },
+  qrScanButton: {
+    backgroundColor: '#5865f2',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrScanButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   resultContainer: {
     borderRadius: 12,

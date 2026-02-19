@@ -6,6 +6,7 @@ import { CreateProofScreen } from '../screens/create-proof-screen';
 import { HomeScreen } from '../screens/home-screen';
 import { ProofDetailsScreen } from '../screens/proof-details-screen';
 import { ProofListScreen } from '../screens/proof-list-screen';
+import { QRScannerScreen } from '../screens/qr-scanner-screen';
 import { VerifyProofScreen } from '../screens/verify-proof-screen';
 import { WalletConnectScreen } from '../screens/wallet-connect-screen';
 import { RootStackParamList } from '../types/navigation';
@@ -22,6 +23,7 @@ export const AppNavigator = (): React.JSX.Element => {
         <Stack.Screen name="ProofList" component={ProofListScreen} options={{ title: 'Proof List' }} />
         <Stack.Screen name="ProofDetails" component={ProofDetailsScreen} options={{ title: 'Proof Details' }} />
         <Stack.Screen name="WalletConnect" component={WalletConnectScreen} options={{ title: 'Wallet Connect' }} />
+        <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ title: 'Scan QR Code' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

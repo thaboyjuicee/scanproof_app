@@ -50,15 +50,32 @@ export const CreateProofScreen = (): React.JSX.Element => {
       // Create the proof through the hook
       await createProof(title, description, proofType, uploadToIpfs, fileUri || undefined);
       
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setUrlLink('');
-      setFileName(null);
-      setFileUri(null);
-      setProofType('text');
+      // Show success and generate QR
+      setTimeout(() => {
+        // Generate a proof ID based on title and timestamp
+        const proofId = `${title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
+        const generatedProof: Proof = {
+          id: proofId,
+          title,
+          description,
+          proofType,
+          hash: 'pending',
+          ownerWallet: 'user-wallet',
+          timestampIso: new Date().toISOString(),
+        };
+        setGeneratedProof(generatedProof);
+        setQrModalVisible(true);
+      }, 500);
       
-      Alert.alert('Success', 'Proof created successfully! 🎉');
+      // Reset form after showing QR
+      setTimeout(() => {
+        setTitle('');
+        setDescription('');
+        setUrlLink('');
+        setFileName(null);
+        setFileUri(null);
+        setProofType('text');
+      }, 1000);
     } catch (err) {
       Alert.alert('Error', 'Failed to create proof');
     }
