@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { VerificationResult } from '../models/verification-result';
 import { useProofs } from '../hooks/use-proofs';
 
 export const VerifyProofScreen = (): React.JSX.Element => {
-  const { proofs, verifyProof } = useProofs();
+  const { proofs, verifyProof, verifyMultipleProofs } = useProofs();
   const [proofId, setProofId] = useState('');
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedProofs, setSelectedProofs] = useState<Set<string>>(new Set());
 
   const result = useMemo(() => {
     const match = proofs.find((proof) => proof.id === proofId.trim());
@@ -16,24 +19,69 @@ export const VerifyProofScreen = (): React.JSX.Element => {
     return verifyProof(match);
   }, [proofId, proofs, verifyProof]);
 
+  const batchResults = useMemo(() => {
+    if (!batchMode || selectedProofs.size === 0) {
+      return [];
+    }
+    const batchProofs = proofs.filter((p) => selectedProofs.has(p.id));
+    return verifyMultipleProofs(batchProofs);
+  }, [batchMode, selectedProofs, proofs, verifyMultipleProofs]);
+
+  const toggleProofSelection = (id: string) => {
+    const newSelected = new Set(selectedProofs);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedProofs(newSelected);
+  };
+
   const renderStatusIcon = (valid: boolean): string => (valid ? '✅' : '❌');
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Verify Proof</Text>
-      <Text style={styles.subtitle}>Enter a proof ID to validate its blockchain signature</Text>
+      <Text style={styles.subtitle}>Validate proof authenticity using blockchain verification</Text>
 
-      <View style={styles.searchSection}>
-        <TextInput
-          placeholder="Enter Proof ID"
-          placeholderTextColor="#aaa"
-          value={proofId}
-          onChangeText={setProofId}
-          style={styles.input}
-        />
+      <View style={styles.modeSelector}>
+        <TouchableOpacity
+          style={[styles.modeButton, !batchMode && styles.modeButtonActive]}
+          onPress={() => {
+            setBatchMode(false);
+            setSelectedProofs(new Set());
+          }}
+        >
+          <Text style={[styles.modeButtonText, !batchMode && styles.modeButtonTextActive]}>
+            🔍 Single
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeButton, batchMode && styles.modeButtonActive]}
+          onPress={() => {
+            setBatchMode(true);
+            setProofId('');
+          }}
+        >
+          <Text style={[styles.modeButtonText, batchMode && styles.modeButtonTextActive]}>
+            📋 Batch ({selectedProofs.size})
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {result ? (
+      {!batchMode && (
+        <View style={styles.searchSection}>
+          <TextInput
+            placeholder="Enter Proof ID"
+            placeholderTextColor="#aaa"
+            value={proofId}
+            onChangeText={setProofId}
+            style={styles.input}
+          />
+        </View>
+      )}
+
+      {!batchMode && result ? (
         <View style={[styles.resultContainer, result.isValid ? styles.resultValid : styles.resultInvalid]}>
           <View style={styles.resultHeader}>
             <Text style={styles.resultIcon}>{renderStatusIcon(result.isValid)}</Text>
@@ -78,28 +126,63 @@ export const VerifyProofScreen = (): React.JSX.Element => {
             </View>
           )}
         </View>
-      ) : (
+      ) : !batchMode ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🔍</Text>
           <Text style={styles.emptyText}>Enter a proof ID from the list to verify</Text>
           <Text style={styles.emptyHint}>Available proofs: {proofs.length}</Text>
         </View>
+      ) : null}
+
+      {batchMode && batchResults.length > 0 && (
+        <View style={styles.batchResults}>
+          <Text style={styles.sectionTitle}>Batch Results</Text>
+          <View style={styles.batchSummary}>
+            <Text style={styles.summaryText}>
+              ✅ Valid: {batchResults.filter((r: VerificationResult) => r.isValid).length}
+            </Text>
+            <Text style={styles.summaryText}>
+              ❌ Invalid: {batchResults.filter((r: VerificationResult) => !r.isValid).length}
+            </Text>
+          </View>
+          {batchResults.map((r: VerificationResult, idx: number) => (
+            <View key={idx} style={[styles.batchItem, r.isValid ? styles.batchItemValid : styles.batchItemInvalid]}>
+              <Text style={styles.batchItemStatus}>{renderStatusIcon(r.isValid)}</Text>
+            </View>
+          ))}
+        </View>
       )}
 
       {proofs.length > 0 && (
         <View style={styles.proofsSection}>
-          <Text style={styles.sectionTitle}>Available Proofs</Text>
+          <Text style={styles.sectionTitle}>
+            {batchMode ? `Proofs (${selectedProofs.size} selected)` : 'Available Proofs'}
+          </Text>
           {proofs.map((proof) => (
             <TouchableOpacity
               key={proof.id}
-              style={[styles.proofItem, proofId === proof.id && styles.proofItemActive]}
-              onPress={() => setProofId(proof.id)}
+              style={[
+                styles.proofItem,
+                !batchMode && proofId === proof.id && styles.proofItemActive,
+                batchMode && selectedProofs.has(proof.id) && styles.proofItemActive,
+              ]}
+              onPress={() => {
+                if (batchMode) {
+                  toggleProofSelection(proof.id);
+                } else {
+                  setProofId(proof.id);
+                }
+              }}
             >
+              {batchMode && (
+                <Text style={styles.checkbox}>{selectedProofs.has(proof.id) ? '☑️' : '☐'}</Text>
+              )}
               <View style={styles.proofInfo}>
                 <Text style={styles.proofTitle}>{proof.title}</Text>
                 <Text style={styles.proofId}>{proof.id}</Text>
+                <Text style={styles.proofType}>{proof.proofType}</Text>
               </View>
-              <Text style={styles.proofArrow}>›</Text>
+              {!batchMode && <Text style={styles.proofArrow}>›</Text>}
             </TouchableOpacity>
           ))}
         </View>
@@ -276,8 +359,75 @@ const styles = StyleSheet.create({
     color: '#999',
     fontFamily: 'monospace',
   },
+  proofType: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
+  },
   proofArrow: {
     fontSize: 18,
     color: '#5865f2',
+  },
+  checkbox: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  modeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  modeButtonActive: {
+    borderColor: '#5865f2',
+    backgroundColor: '#f0f3ff',
+  },
+  modeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modeButtonTextActive: {
+    color: '#5865f2',
+  },
+  batchResults: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+  },
+  batchSummary: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  summaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  batchItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  batchItemValid: {
+    backgroundColor: '#f0fdf4',
+  },
+  batchItemInvalid: {
+    backgroundColor: '#fef2f2',
+  },
+  batchItemStatus: {
+    fontSize: 16,
   },
 });

@@ -1,4 +1,4 @@
-import { Proof } from '../../models/proof';
+import { Proof, ProofType } from '../../models/proof';
 import { SignedPayload } from '../../models/signed-payload';
 import { hashProofInput } from '../../utils/hash';
 
@@ -6,6 +6,9 @@ interface CreateProofInput {
   title: string;
   description: string;
   ownerWallet: string;
+  proofType: ProofType;
+  fileUrl?: string;
+  fileName?: string;
   signedPayload?: SignedPayload;
 }
 
@@ -32,6 +35,9 @@ export class ProofService {
       ownerWallet: input.ownerWallet.trim(),
       timestampIso,
       hash,
+      proofType: input.proofType,
+      fileUrl: input.fileUrl,
+      fileName: input.fileName,
       signedMessage: input.signedPayload?.message,
       signature: input.signedPayload?.signatureBase58,
     };

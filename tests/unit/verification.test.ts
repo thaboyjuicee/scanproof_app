@@ -25,6 +25,7 @@ describe('VerificationService', () => {
         ownerWallet: bs58.encode(signer.publicKey),
         timestampIso: '2026-02-18T12:00:00.000Z',
       }),
+      proofType: 'text',
       signedMessage: message,
       signature: bs58.encode(signature),
     };
@@ -44,6 +45,7 @@ describe('VerificationService', () => {
       ownerWallet: 'owner',
       timestampIso: '2026-02-18T12:00:00.000Z',
       hash: 'bad_hash',
+      proofType: 'text',
     };
 
     const result = service.verifyProof(proof);

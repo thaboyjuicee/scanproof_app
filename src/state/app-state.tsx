@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { Proof } from '../models/proof';
+import { Proof, ProofType } from '../models/proof';
 import { VerificationResult } from '../models/verification-result';
 import { WalletSession } from '../models/wallet-session';
 import { services } from '../services';
@@ -14,8 +14,9 @@ interface AppStateContextValue {
   connectWallet: () => Promise<void>;
   reconnectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
-  createProof: (title: string, description: string, uploadToIpfs: boolean) => Promise<void>;
+  createProof: (title: string, description: string, proofType: ProofType, uploadToIpfs: boolean, fileUri?: string) => Promise<void>;
   verifyProof: (proof: Proof) => VerificationResult;
+  verifyMultipleProofs: (proofs: Proof[]) => VerificationResult[];
   loadProofs: () => Promise<void>;
   clearError: () => void;
 }
@@ -87,7 +88,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     }
   }, [clearError, handleError]);
 
-  const createProof = useCallback(async (title: string, description: string, uploadToIpfs: boolean) => {
+  const createProof = useCallback(async (title: string, description: string, proofType: ProofType, uploadToIpfs: boolean, fileUri?: string) => {
     if (!walletSession) {
       setError('Connect wallet before creating a proof.');
       return;
@@ -97,11 +98,26 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     clearError();
 
     try {
+      let fileUrl: string | undefined;
+      let fileName: string | undefined;
+
+      // Upload file if provided
+      if (fileUri) {
+        const urlParts = fileUri.split('/');
+        fileName = urlParts[urlParts.length - 1];
+        const uploadResponse = await services.fileUploadService.uploadFile(fileUri, fileName);
+        fileUrl = uploadResponse.url;
+        logger.info('File uploaded', { fileName, fileUrl });
+      }
+
       const signedPayload = await services.walletService.signMessage(`Proof:${title}:${Date.now()}`);
       const proof = services.proofService.createProof({
         title,
         description,
         ownerWallet: walletSession.walletAddress,
+        proofType,
+        fileUrl,
+        fileName,
         signedPayload,
       });
 
@@ -128,6 +144,10 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     return services.verificationService.verifyProof(proof);
   }, []);
 
+  const verifyMultipleProofs = useCallback((proofList: Proof[]): VerificationResult[] => {
+    return proofList.map(proof => services.verificationService.verifyProof(proof));
+  }, []);
+
   useEffect(() => {
     void (async () => {
       await loadProofs();
@@ -145,6 +165,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     disconnectWallet,
     createProof,
     verifyProof,
+    verifyMultipleProofs,
     loadProofs,
     clearError,
   }), [
@@ -157,6 +178,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     disconnectWallet,
     createProof,
     verifyProof,
+    verifyMultipleProofs,
     loadProofs,
     clearError,
   ]);
