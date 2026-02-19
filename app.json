@@ -22,6 +22,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "CAMERA"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -44,6 +47,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for scanning QR codes"
+        }
+      ]
+    ],
     "extra": {
       "PHANTOM_REDIRECT_URI": "scanproof://wallet-callback",
       "PHANTOM_APP_URL": "https://scanproof.app",

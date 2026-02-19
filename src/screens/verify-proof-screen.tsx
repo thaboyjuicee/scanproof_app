@@ -86,7 +86,7 @@ export const VerifyProofScreen = ({ navigation }: Props): React.JSX.Element => {
             style={styles.qrScanButton}
             onPress={() => navigation.navigate('QRScanner')}
           >
-            <Text style={styles.qrScanButtonText}>� Manual Verify</Text>
+            <Text style={styles.qrScanButtonText}>📸 Scan QR</Text>
           </TouchableOpacity>
         </View>
       )}
