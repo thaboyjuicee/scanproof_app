@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ScanProof_React_Native",
-    "slug": "ScanProof_React_Native",
+    "name": "ScanProof",
+    "slug": "scanproof",
     "version": "1.0.0",
     "scheme": "scanproof",
     "orientation": "portrait",

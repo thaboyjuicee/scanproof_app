@@ -33,7 +33,7 @@ export const WalletButton = ({ connected, walletAddress, onPress }: WalletButton
         end={{ x: 1, y: 0 }}
         style={styles.gradient}
       >
-        <Feather name="wallet" size={18} color="#ffffff" />
+        <Feather name="credit-card" size={18} color="#ffffff" />
         <Text style={styles.text}>Connect Wallet</Text>
       </LinearGradient>
     </TouchableOpacity>
