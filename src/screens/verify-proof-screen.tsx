@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { VerificationResult } from '../models/verification-result';
 import { RootStackParamList } from '../types/navigation';
 import { useProofs } from '../hooks/use-proofs';
+import { CardContainer, GradientButton, GradientText, VerifiedBadge } from '../components';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyProof'>;
 
@@ -41,331 +44,399 @@ export const VerifyProofScreen = ({ navigation }: Props): React.JSX.Element => {
     setSelectedProofs(newSelected);
   };
 
-  const renderStatusIcon = (valid: boolean): string => (valid ? '✅' : '❌');
+  const renderStatusIcon = (valid: boolean): React.JSX.Element => (
+    <Feather name={valid ? 'check-circle' : 'x-circle'} size={20} color={valid ? '#22c55e' : '#ef4444'} />
+  );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Verify Proof</Text>
-      <Text style={styles.subtitle}>Validate proof authenticity using blockchain verification</Text>
+    <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <GradientText style={styles.title}>Verify Proof</GradientText>
+          <Text style={styles.subtitle}>Validate proof authenticity on the blockchain</Text>
+        </View>
 
-      <View style={styles.modeSelector}>
-        <TouchableOpacity
-          style={[styles.modeButton, !batchMode && styles.modeButtonActive]}
-          onPress={() => {
-            setBatchMode(false);
-            setSelectedProofs(new Set());
-          }}
-        >
-          <Text style={[styles.modeButtonText, !batchMode && styles.modeButtonTextActive]}>
-            🔍 Single
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeButton, batchMode && styles.modeButtonActive]}
-          onPress={() => {
-            setBatchMode(true);
-            setProofId('');
-          }}
-        >
-          <Text style={[styles.modeButtonText, batchMode && styles.modeButtonTextActive]}>
-            📋 Batch ({selectedProofs.size})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {!batchMode && (
-        <View style={styles.searchSection}>
-          <TextInput
-            placeholder="Enter Proof ID"
-            placeholderTextColor="#aaa"
-            value={proofId}
-            onChangeText={setProofId}
-            style={styles.input}
-          />
+        <View style={styles.modeSelector}>
           <TouchableOpacity
-            style={styles.qrScanButton}
-            onPress={() => navigation.navigate('QRScanner')}
+            style={[styles.modeButton, !batchMode && styles.modeButtonActive]}
+            onPress={() => {
+              setBatchMode(false);
+              setSelectedProofs(new Set());
+            }}
           >
-            <Text style={styles.qrScanButtonText}>📸 Scan QR</Text>
+            <Feather name="search" size={20} color={!batchMode ? '#9333ea' : '#6b7280'} />
+            <Text style={[styles.modeButtonText, !batchMode && styles.modeButtonTextActive]}>
+              Single
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeButton, batchMode && styles.modeButtonActive]}
+            onPress={() => {
+              setBatchMode(true);
+              setProofId('');
+            }}
+          >
+            <Feather name="layers" size={20} color={batchMode ? '#9333ea' : '#6b7280'} />
+            <Text style={[styles.modeButtonText, batchMode && styles.modeButtonTextActive]}>
+              Batch ({selectedProofs.size})
+            </Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {!batchMode && result ? (
-        <View style={[styles.resultContainer, result.isValid ? styles.resultValid : styles.resultInvalid]}>
-          <View style={styles.resultHeader}>
-            <Text style={styles.resultIcon}>{renderStatusIcon(result.isValid)}</Text>
-            <Text style={styles.resultTitle}>{result.isValid ? 'Verified' : 'Invalid'}</Text>
-          </View>
-
-          <View style={styles.resultsGrid}>
-            <View style={styles.resultItem}>
-              <Text style={styles.resultLabel}>Integrity</Text>
-              <Text style={[styles.resultBadge, result.integrityValid ? styles.badgeValid : styles.badgeInvalid]}>
-                {renderStatusIcon(result.integrityValid)} {result.integrityValid ? 'Valid' : 'Failed'}
-              </Text>
+        {!batchMode && (
+          <CardContainer>
+            <View style={styles.searchSection}>
+              <Text style={styles.label}>Proof ID</Text>
+              <TextInput
+                placeholder="Enter proof ID to verify"
+                placeholderTextColor="#9ca3af"
+                value={proofId}
+                onChangeText={setProofId}
+                style={styles.input}
+              />
+              <GradientButton
+                title="Scan QR Code"
+                onPress={() => navigation.navigate('QRScanner')}
+                icon="camera"
+                variant="secondary"
+              />
             </View>
+          </CardContainer>
+        )}
 
-            <View style={styles.resultItem}>
-              <Text style={styles.resultLabel}>Owner</Text>
-              <Text style={[styles.resultBadge, result.ownerValid ? styles.badgeValid : styles.badgeInvalid]}>
-                {renderStatusIcon(result.ownerValid)} {result.ownerValid ? 'Valid' : 'Failed'}
-              </Text>
-            </View>
-
-            <View style={styles.resultItem}>
-              <Text style={styles.resultLabel}>Signature</Text>
-              <Text style={[styles.resultBadge, result.signatureValid ? styles.badgeValid : styles.badgeInvalid]}>
-                {renderStatusIcon(result.signatureValid)} {result.signatureValid ? 'Valid' : 'Failed'}
-              </Text>
-            </View>
-          </View>
-
-          {result.reasons.length > 0 ? (
-            <View style={styles.reasonsSection}>
-              <Text style={styles.reasonsLabel}>Issues Found</Text>
-              {result.reasons.map((reason) => (
-                <View key={reason} style={styles.reasonItem}>
-                  <Text style={styles.reasonText}>⚠️ {reason}</Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.successMessage}>
-              <Text style={styles.successText}>All checks passed!</Text>
-            </View>
-          )}
-        </View>
-      ) : !batchMode ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={styles.emptyText}>Enter a proof ID from the list to verify</Text>
-          <Text style={styles.emptyHint}>Available proofs: {proofs.length}</Text>
-        </View>
-      ) : null}
-
-      {batchMode && batchResults.length > 0 && (
-        <View style={styles.batchResults}>
-          <Text style={styles.sectionTitle}>Batch Results</Text>
-          <View style={styles.batchSummary}>
-            <Text style={styles.summaryText}>
-              ✅ Valid: {batchResults.filter((r: VerificationResult) => r.isValid).length}
-            </Text>
-            <Text style={styles.summaryText}>
-              ❌ Invalid: {batchResults.filter((r: VerificationResult) => !r.isValid).length}
-            </Text>
-          </View>
-          {batchResults.map((r: VerificationResult, idx: number) => (
-            <View key={idx} style={[styles.batchItem, r.isValid ? styles.batchItemValid : styles.batchItemInvalid]}>
-              <Text style={styles.batchItemStatus}>{renderStatusIcon(r.isValid)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {proofs.length > 0 && (
-        <View style={styles.proofsSection}>
-          <Text style={styles.sectionTitle}>
-            {batchMode ? `Proofs (${selectedProofs.size} selected)` : 'Available Proofs'}
-          </Text>
-          {proofs.map((proof) => (
-            <TouchableOpacity
-              key={proof.id}
-              style={[
-                styles.proofItem,
-                !batchMode && proofId === proof.id && styles.proofItemActive,
-                batchMode && selectedProofs.has(proof.id) && styles.proofItemActive,
-              ]}
-              onPress={() => {
-                if (batchMode) {
-                  toggleProofSelection(proof.id);
-                } else {
-                  setProofId(proof.id);
-                }
-              }}
-            >
-              {batchMode && (
-                <Text style={styles.checkbox}>{selectedProofs.has(proof.id) ? '☑️' : '☐'}</Text>
-              )}
-              <View style={styles.proofInfo}>
-                <Text style={styles.proofTitle}>{proof.title}</Text>
-                <Text style={styles.proofId}>{proof.id}</Text>
-                <Text style={styles.proofType}>{proof.proofType}</Text>
+        {!batchMode && result ? (
+          <CardContainer>
+            <View style={[styles.resultHeader, result.isValid ? styles.validHeader : styles.invalidHeader]}>
+              <Feather 
+                name={result.isValid ? 'check-circle' : 'x-circle'} 
+                size={48} 
+                color={result.isValid ? '#22c55e' : '#ef4444'} 
+              />
+              <View style={styles.resultHeaderText}>
+                <Text style={[styles.resultTitle, result.isValid ? styles.validText : styles.invalidText]}>
+                  {result.isValid ? 'Verified' : 'Invalid'}
+                </Text>
+                <Text style={styles.resultSubtitle}>
+                  {result.isValid ? 'All checks passed' : 'Verification failed'}
+                </Text>
               </View>
-              {!batchMode && <Text style={styles.proofArrow}>›</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+            </View>
+
+            <View style={styles.checksList}>
+              <View style={styles.checkItem}>
+                {renderStatusIcon(result.integrityValid)}
+                <Text style={styles.checkLabel}>Data Integrity</Text>
+              </View>
+              <View style={styles.checkItem}>
+                {renderStatusIcon(result.ownerValid)}
+                <Text style={styles.checkLabel}>Owner Verification</Text>
+              </View>
+              <View style={styles.checkItem}>
+                {renderStatusIcon(result.signatureValid)}
+                <Text style={styles.checkLabel}>Digital Signature</Text>
+              </View>
+            </View>
+
+            {result.reasons.length > 0 && (
+              <View style={styles.reasonsSection}>
+                <Text style={styles.reasonsLabel}>Issues Found:</Text>
+                {result.reasons.map((reason, idx) => (
+                  <View key={idx} style={styles.reasonItem}>
+                    <Feather name="alert-triangle" size={16} color="#f59e0b" />
+                    <Text style={styles.reasonText}>{reason}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </CardContainer>
+        ) : !batchMode ? (
+          <CardContainer>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconCircle}>
+                <Feather name="search" size={40} color="#9333ea" />
+              </View>
+              <Text style={styles.emptyText}>Enter a Proof ID</Text>
+              <Text style={styles.emptyHint}>Scan a QR code or select from {proofs.length} available proofs</Text>
+            </View>
+          </CardContainer>
+        ) : null}
+
+        {batchMode && batchResults.length > 0 && (
+          <CardContainer>
+            <Text style={styles.sectionTitle}>Batch Results</Text>
+            <View style={styles.batchSummary}>
+              <VerifiedBadge 
+                label={`${batchResults.filter((r: VerificationResult) => r.isValid).length} Valid`}
+                variant="success"
+              />
+              <VerifiedBadge 
+                label={`${batchResults.filter((r: VerificationResult) => !r.isValid).length} Invalid`}
+                variant="warning"
+              />
+            </View>
+          </CardContainer>
+        )}
+
+        {proofs.length > 0 && (
+          <View style={styles.proofsSection}>
+            <Text style={styles.sectionTitle}>
+              {batchMode ? `Select Proofs (${selectedProofs.size} selected)` : 'Available Proofs'}
+            </Text>
+            {proofs.map((proof) => (
+              <TouchableOpacity
+                key={proof.id}
+                style={[
+                  styles.proofItem,
+                  !batchMode && proofId === proof.id && styles.proofItemActive,
+                  batchMode && selectedProofs.has(proof.id) && styles.proofItemActive,
+                ]}
+                onPress={() => {
+                  if (batchMode) {
+                    toggleProofSelection(proof.id);
+                  } else {
+                    setProofId(proof.id);
+                  }
+                }}
+              >
+                {batchMode && (
+                  <View style={styles.checkboxContainer}>
+                    <View style={[styles.checkbox, selectedProofs.has(proof.id) && styles.checkboxActive]}>
+                      {selectedProofs.has(proof.id) && (
+                        <Feather name="check" size={16} color="#ffffff" />
+                      )}
+                    </View>
+                  </View>
+                )}
+                <View style={styles.proofInfo}>
+                  <Text style={styles.proofTitle}>{proof.title}</Text>
+                  <Text style={styles.proofId}>{proof.id}</Text>
+                  <View style={styles.proofMeta}>
+                    <Feather name="file-text" size={12} color="#6b7280" />
+                    <Text style={styles.proofType}>{proof.proofType}</Text>
+                  </View>
+                </View>
+                {!batchMode && <Feather name="chevron-right" size={20} color="#9333ea" />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {batchMode && selectedProofs.size > 0 && (
+          <GradientButton
+            title={`Verify ${selectedProofs.size} Proof${selectedProofs.size !== 1 ? 's' : ''}`}
+            onPress={() => {/* Already computed in useMemo */}}
+            icon="check-circle"
+          />
+        )}
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
+
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flexGrow: 1,
     padding: 20,
-    gap: 16,
-    backgroundColor: '#f9f9f9',
+    gap: 20,
+  },
+  header: {
+    gap: 8,
+    marginBottom: 4,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222',
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: '#6b7280',
+  },
+  modeSelector: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  modeButtonActive: {
+    borderColor: '#9333ea',
+    backgroundColor: '#faf5ff',
+  },
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  modeButtonTextActive: {
+    color: '#9333ea',
   },
   searchSection: {
-    gap: 8,
+    gap: 12,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    backgroundColor: '#fff',
-  },
-  qrScanButton: {
-    backgroundColor: '#5865f2',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrScanButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resultContainer: {
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    borderLeftWidth: 5,
-  },
-  resultValid: {
-    backgroundColor: '#f0fdf4',
-    borderLeftColor: '#22c55e',
-  },
-  resultInvalid: {
-    backgroundColor: '#fef2f2',
-    borderLeftColor: '#ef4444',
+    backgroundColor: '#ffffff',
+    color: '#1f2937',
   },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  resultIcon: {
-    fontSize: 32,
+  validHeader: {
+    borderBottomColor: '#86efac',
+  },
+  invalidHeader: {
+    borderBottomColor: '#fca5a5',
+  },
+  resultHeaderText: {
+    flex: 1,
+    gap: 4,
   },
   resultTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#222',
   },
-  resultsGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginVertical: 8,
-  },
-  resultItem: {
-    flex: 1,
-    gap: 6,
-    alignItems: 'center',
-  },
-  resultLabel: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  resultBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  badgeValid: {
-    backgroundColor: '#dcfce7',
-    color: '#166534',
-  },
-  badgeInvalid: {
-    backgroundColor: '#fee2e2',
-    color: '#991b1b',
-  },
-  reasonsSection: {
-    gap: 8,
-    marginTop: 8,
-  },
-  reasonsLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#866',
-  },
-  reasonItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139,69,19,0.1)',
-  },
-  reasonText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  successMessage: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  successText: {
-    fontSize: 14,
-    fontWeight: '600',
+  validText: {
     color: '#16a34a',
   },
-  emptyState: {
-    paddingVertical: 40,
+  invalidText: {
+    color: '#dc2626',
+  },
+  resultSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  checksList: {
+    gap: 12,
+    paddingVertical: 16,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  reasonsSection: {
+    gap: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  reasonsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f59e0b',
+  },
+  reasonItem: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    padding: 12,
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#f59e0b',
   },
-  emptyIcon: {
-    fontSize: 48,
+  reasonText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#78350f',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#faf5ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#9333ea',
+    marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#222',
+    fontWeight: '700',
+    color: '#1f2937',
   },
   emptyHint: {
     fontSize: 13,
-    color: '#999',
+    color: '#9ca3af',
+    textAlign: 'center',
   },
   proofsSection: {
-    gap: 8,
-    marginTop: 16,
+    gap: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222',
+    color: '#1f2937',
+    marginBottom: 4,
   },
   proofItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    gap: 12,
+    padding: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
   },
   proofItemActive: {
-    borderColor: '#5865f2',
-    backgroundColor: '#f0f3ff',
+    borderColor: '#9333ea',
+    backgroundColor: '#faf5ff',
+  },
+  checkboxContainer: {
+    paddingRight: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#9ca3af',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  checkboxActive: {
+    backgroundColor: '#9333ea',
+    borderColor: '#9333ea',
   },
   proofInfo: {
     flex: 1,
@@ -374,82 +445,26 @@ const styles = StyleSheet.create({
   proofTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222',
+    color: '#1f2937',
   },
   proofId: {
     fontSize: 11,
-    color: '#999',
+    color: '#9ca3af',
     fontFamily: 'monospace',
+  },
+  proofMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   proofType: {
     fontSize: 11,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  proofArrow: {
-    fontSize: 18,
-    color: '#5865f2',
-  },
-  checkbox: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  modeSelector: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  modeButtonActive: {
-    borderColor: '#5865f2',
-    backgroundColor: '#f0f3ff',
-  },
-  modeButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  modeButtonTextActive: {
-    color: '#5865f2',
-  },
-  batchResults: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 12,
-    gap: 8,
+    color: '#6b7280',
   },
   batchSummary: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  summaryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-  },
-  batchItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  batchItemValid: {
-    backgroundColor: '#f0fdf4',
-  },
-  batchItemInvalid: {
-    backgroundColor: '#fef2f2',
-  },
-  batchItemStatus: {
-    fontSize: 16,
+    gap: 8,
+    marginTop: 12,
   },
 });
+

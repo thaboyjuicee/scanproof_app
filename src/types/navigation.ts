@@ -9,3 +9,10 @@ export type RootStackParamList = {
   WalletConnect: undefined;
   QRScanner: undefined;
 };
+
+export type TabParamList = {
+  HomeTab: undefined;
+  CreateTab: undefined;
+  ScanTab: undefined;
+  MyQRsTab: undefined;
+};

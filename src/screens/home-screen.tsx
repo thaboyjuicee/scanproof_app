@@ -1,66 +1,107 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 
 import { useWallet } from '../hooks/use-wallet';
-import { RootStackParamList } from '../types/navigation';
+import { WalletButton, CardContainer, VerifiedBadge, GradientText } from '../components';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-export const HomeScreen = ({ navigation }: Props): React.JSX.Element => {
-  const { walletSession } = useWallet();
+export const HomeScreen = (): React.JSX.Element => {
+  const { walletSession, connectWallet } = useWallet();
 
   const features = [
-    { icon: '📝', title: 'Create Proof', desc: 'Generate blockchain-anchored proofs', nav: 'CreateProof' },
-    { icon: '✅', title: 'Verify Proof', desc: 'Verify proof authenticity', nav: 'VerifyProof' },
-    { icon: '📋', title: 'My Proofs', desc: 'View saved proofs', nav: 'ProofList' },
-    { icon: '�', title: 'Scan QR', desc: 'Scan proof QR codes', nav: 'QRScanner' },
-    { icon: '🔗', title: 'Wallet', desc: 'Connect and manage wallet', nav: 'WalletConnect' },
+    { icon: 'shield', title: 'Tamper Proof', desc: 'Cryptographically secure proofs' },
+    { icon: 'link-2', title: 'On-Chain Proof', desc: 'Verified on Solana blockchain' },
+    { icon: 'zap', title: 'Instant Verify', desc: 'Scan and verify instantly' },
+  ];
+
+  const steps = [
+    { number: '1', title: 'Create Proof', desc: 'Upload files and create your proof' },
+    { number: '2', title: 'Get QR Code', desc: 'Receive a unique QR code' },
+    { number: '3', title: 'Verify Anytime', desc: 'Scan to verify authenticity' },
   ];
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={['#faf5ff', '#ffffff', '#eff6ff']}
+        style={styles.gradientBg}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.appName}>ScanProof</Text>
-        <Text style={styles.tagline}>Blockchain-Anchored Proofs on Solana</Text>
-      </View>
-
-      {/* Wallet Status */}
-      <View style={[styles.walletCard, walletSession ? styles.walletConnected : styles.walletDisconnected]}>
-        <Text style={styles.walletIcon}>{walletSession ? '✅' : '⚠️'}</Text>
-        <View style={styles.walletInfo}>
-          <Text style={styles.walletLabel}>Wallet Status</Text>
-          <Text style={styles.walletAddress}>
-            {walletSession ? `${walletSession.walletAddress.slice(0, 8)}...${walletSession.walletAddress.slice(-8)}` : 'Not Connected'}
-          </Text>
+        <View style={styles.logoContainer}>
+          <LinearGradient
+            colors={['#9333ea', '#2563eb']}
+            style={styles.logo}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Feather name="shield" size={24} color="#ffffff" />
+          </LinearGradient>
+        </View>
+        <View style={styles.headerText}>
+          <GradientText style={styles.appName}>ScanProof</GradientText>
+          <Text style={styles.subtitle}>Verified on Solana</Text>
         </View>
       </View>
 
-      {/* Features Grid */}
-      <View style={styles.featuresSection}>
-        <Text style={styles.sectionTitle}>Features</Text>
+      {/* Hero Section */}
+      <CardContainer style={styles.heroCard}>
+        <Text style={styles.heroTitle}>
+          Create Tamper-Proof{'\n'}Digital Certificates
+        </Text>
+        <Text style={styles.heroSubtext}>
+          Generate blockchain-anchored proofs with QR codes for instant verification
+        </Text>
+        <WalletButton
+          connected={!!walletSession}
+          walletAddress={walletSession?.walletAddress}
+          onPress={() => void connectWallet()}
+        />
+      </CardContainer>
+
+      {/* Features */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Why ScanProof?</Text>
         <View style={styles.featuresGrid}>
-          {features.map((feature) => (
-            <TouchableOpacity
-              key={feature.nav}
-              style={styles.featureCard}
-              onPress={() => navigation.navigate(feature.nav as any)}
-            >
-              <Text style={styles.featureIcon}>{feature.icon}</Text>
+          {features.map((feature, index) => (
+            <CardContainer key={index} style={styles.featureCard}>
+              <View style={styles.featureIconContainer}>
+                <Feather name={feature.icon as any} size={24} color="#9333ea" />
+              </View>
               <Text style={styles.featureTitle}>{feature.title}</Text>
               <Text style={styles.featureDesc}>{feature.desc}</Text>
-            </TouchableOpacity>
+            </CardContainer>
           ))}
         </View>
       </View>
 
-      {/* Info Section */}
-      <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>About</Text>
-        <Text style={styles.infoText}>
-          ScanProof creates tamper-proof digital proofs anchored to Solana blockchain. Every proof is signed by your wallet and verified against on-chain data.
-        </Text>
+      {/* How It Works */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>How It Works</Text>
+        <View style={styles.stepsContainer}>
+          {steps.map((step, index) => (
+            <View key={index} style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{step.number}</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                <Text style={styles.stepDesc}>{step.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Info Badges */}
+      <View style={styles.badgesRow}>
+        <VerifiedBadge label="Solana Devnet" variant="info" />
+        <VerifiedBadge label="IPFS Storage" variant="info" />
       </View>
     </ScrollView>
   );
@@ -68,109 +109,143 @@ export const HomeScreen = ({ navigation }: Props): React.JSX.Element => {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    padding: 20,
-    gap: 20,
-    backgroundColor: '#f9f9f9',
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
+  },
+  gradientBg: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   header: {
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  appName: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#5865f2',
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  walletCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  walletConnected: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#22c55e',
-  },
-  walletDisconnected: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#ef4444',
-  },
-  walletIcon: {
-    fontSize: 28,
-  },
-  walletInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  walletLabel: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  walletAddress: {
-    fontSize: 14,
-    color: '#222',
-    fontWeight: '600',
-    fontFamily: 'monospace',
-  },
-  featuresSection: {
     gap: 12,
+  },
+  logoContainer: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
+  appName: {
+    fontSize: 24,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  heroCard: {
+    margin: 16,
+    marginTop: 8,
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 12,
+    lineHeight: 36,
+  },
+  heroSubtext: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#222',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
   },
   featuresGrid: {
-    gap: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   featureCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    flex: 1,
+    minWidth: '30%',
     alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    padding: 16,
   },
-  featureIcon: {
-    fontSize: 32,
+  featureIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f3e8ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   featureTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#222',
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
     textAlign: 'center',
   },
   featureDesc: {
     fontSize: 12,
-    color: '#666',
+    color: '#6b7280',
     textAlign: 'center',
-    marginTop: 2,
   },
-  infoSection: {
-    gap: 12,
-    marginTop: 8,
+  stepsContainer: {
+    gap: 16,
   },
-  infoText: {
+  stepItem: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  stepNumber: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#9333ea',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  stepDesc: {
     fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    fontWeight: '500',
+    color: '#6b7280',
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
   },
 });
