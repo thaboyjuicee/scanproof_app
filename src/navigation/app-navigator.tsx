@@ -4,12 +4,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 
+import { CreateTemplatePickerScreen } from '../screens/create-template-picker-screen';
 import { CreateProofScreen } from '../screens/create-proof-screen';
 import { HomeScreen } from '../screens/home-screen';
+import { NotarizeVerifyScreen } from '../screens/notarize-verify-screen';
 import { ProofDetailsScreen } from '../screens/proof-details-screen';
 import { ProofListScreen } from '../screens/proof-list-screen';
 import { QRScannerScreen } from '../screens/qr-scanner-screen';
-import { VerifyProofScreen } from '../screens/verify-proof-screen';
+import { QuestClaimVerifyScreen } from '../screens/quest-claim-verify-screen';
+import { QuestCreateScreen } from '../screens/quest-create-screen';
+import { TicketCreateScreen } from '../screens/ticket-create-screen';
+import { TicketVerifyRedeemScreen } from '../screens/ticket-verify-redeem-screen';
 import { WalletConnectScreen } from '../screens/wallet-connect-screen';
 import { RootStackParamList, TabParamList } from '../types/navigation';
 
@@ -47,7 +52,7 @@ const BottomTabs = (): React.JSX.Element => {
       />
       <Tab.Screen
         name="CreateTab"
-        component={CreateProofScreen}
+        component={CreateTemplatePickerScreen}
         options={{
           tabBarLabel: 'Create',
           tabBarIcon: ({ color, size }) => <Feather name="plus-square" size={size} color={color} />,
@@ -62,10 +67,10 @@ const BottomTabs = (): React.JSX.Element => {
         }}
       />
       <Tab.Screen
-        name="MyQRsTab"
+        name="ProofbookTab"
         component={ProofListScreen}
         options={{
-          tabBarLabel: 'My QRs',
+          tabBarLabel: 'Proofbook',
           tabBarIcon: ({ color, size }) => <Feather name="list" size={size} color={color} />,
         }}
       />
@@ -79,6 +84,36 @@ export const AppNavigator = (): React.JSX.Element => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={BottomTabs} />
         <Stack.Screen 
+          name="NotarizeCreate"
+          component={CreateProofScreen}
+          options={{
+            headerShown: true,
+            title: 'Notarize File',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
+          name="QuestCreate"
+          component={QuestCreateScreen}
+          options={{
+            headerShown: true,
+            title: 'Quest Check-in',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
+          name="TicketCreate"
+          component={TicketCreateScreen}
+          options={{
+            headerShown: true,
+            title: 'Redeemable Gate Pass',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
           name="ProofDetails" 
           component={ProofDetailsScreen} 
           options={{ 
@@ -89,21 +124,41 @@ export const AppNavigator = (): React.JSX.Element => {
           }} 
         />
         <Stack.Screen 
+          name="QuestClaimVerify"
+          component={QuestClaimVerifyScreen}
+          options={{
+            headerShown: true,
+            title: 'Quest Claim / Verify',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
+          name="NotarizeVerify"
+          component={NotarizeVerifyScreen}
+          options={{
+            headerShown: true,
+            title: 'Notarize Verify',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
+          name="TicketVerifyRedeem"
+          component={TicketVerifyRedeemScreen}
+          options={{
+            headerShown: true,
+            title: 'Ticket Verify / Redeem',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen 
           name="WalletConnect" 
           component={WalletConnectScreen} 
           options={{ 
             headerShown: true,
             title: 'Connect Wallet',
-            headerStyle: { backgroundColor: '#ffffff' },
-            headerTintColor: '#111827',
-          }} 
-        />
-        <Stack.Screen 
-          name="VerifyProof" 
-          component={VerifyProofScreen} 
-          options={{ 
-            headerShown: true,
-            title: 'Verify Proof',
             headerStyle: { backgroundColor: '#ffffff' },
             headerTintColor: '#111827',
           }} 

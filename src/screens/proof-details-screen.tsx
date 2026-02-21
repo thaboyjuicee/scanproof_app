@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { QRModal } from '../components/qr-modal';
+import { useProofs } from '../hooks/use-proofs';
 import { RootStackParamList } from '../types/navigation';
 import { CardContainer, GradientButton, GradientText, VerifiedBadge } from '../components';
 
@@ -12,7 +13,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProofDetails'>;
 
 export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
   const { proof } = route.params;
+  const { issuedEnvelopes, encodeEnvelopeToQr } = useProofs();
   const [qrModalVisible, setQrModalVisible] = useState(false);
+
+  const notarizeEnvelope = issuedEnvelopes.find((entry) => entry.type === 'notarize' && entry.id === proof.id);
+  const standardizedQrValue = notarizeEnvelope ? encodeEnvelopeToQr(notarizeEnvelope) : undefined;
 
   const formatDate = (isoString: string): string => {
     const date = new Date(isoString);
@@ -110,6 +115,7 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
       <QRModal
         visible={qrModalVisible}
         proof={proof}
+        qrValue={standardizedQrValue}
         onClose={() => setQrModalVisible(false)}
       />
     </>

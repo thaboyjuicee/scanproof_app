@@ -35,6 +35,11 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
   return btoa(binary);
 };
 
+const base64ToString = (base64: string): string => {
+  const bytes = base64ToUint8Array(base64);
+  return bs58.encode(bytes);
+};
+
 export class MwaWalletService implements WalletService {
   private activeSession: WalletSession | null = null;
 
@@ -120,6 +125,33 @@ export class MwaWalletService implements WalletService {
     }
 
     return signedPayload;
+  }
+
+  async sendTransaction(serializedTransactionBase64: string): Promise<string> {
+    const session = await this.requireSession();
+    const addressBytes = bs58.decode(session.walletAddress);
+
+    const sendResult = await transact(async (wallet) => {
+      await wallet.reauthorize({
+        auth_token: session.sessionToken,
+        identity: this.appIdentity,
+      });
+
+      const result = await (wallet as any).signAndSendTransactions({
+        addresses: [uint8ArrayToBase64(addressBytes)],
+        payloads: [serializedTransactionBase64],
+      });
+
+      return result;
+    });
+
+    const signatures = (sendResult as any)?.signatures as string[] | undefined;
+    if (!signatures || signatures.length === 0) {
+      throw new AppError('No transaction signature returned by wallet.', 'WALLET_TX_FAILED');
+    }
+
+    const first = signatures[0];
+    return first.length > 80 ? first : base64ToString(first);
   }
 
   verifySignedPayload(payload: SignedPayload): boolean {

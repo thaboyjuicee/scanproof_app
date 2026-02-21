@@ -1,59 +1,52 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useProofs } from '../hooks/use-proofs';
 import { GradientButton, CardContainer } from '../components';
+import { RootStackParamList } from '../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const QRScannerScreen = (): React.JSX.Element => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
-  const { proofs, verifyProof } = useProofs();
+  const { decodeEnvelopeFromQr, addScanHistory } = useProofs();
 
   const handleBarCodeScanned = ({ data }: { data: string }): void => {
     if (scanned) return;
     setScanned(true);
 
     try {
-      const parsed = JSON.parse(data);
-      const proofId = parsed.proofId;
+      const envelope = decodeEnvelopeFromQr(data);
 
-      if (!proofId) {
-        Alert.alert('Error', 'Invalid QR code', [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
-        return;
+      void addScanHistory({
+        envelopeId: envelope.id,
+        envelopeType: envelope.type,
+        status: 'ok',
+        message: 'Envelope decoded successfully',
+      });
+
+      if (envelope.type === 'quest') {
+        navigation.navigate('QuestClaimVerify', { envelope });
+      } else if (envelope.type === 'notarize') {
+        navigation.navigate('NotarizeVerify', { envelope });
+      } else {
+        navigation.navigate('TicketVerifyRedeem', { envelope });
       }
-
-      const proof = proofs.find((p) => p.id === proofId);
-      if (!proof) {
-        Alert.alert('Not Found', 'Proof not found in your wallet', [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
-        return;
-      }
-
-      const result = verifyProof(proof);
-      Alert.alert(
-        result.isValid ? 'Verified ✅' : 'Invalid ❌',
-        `Proof "${proof.title}" is ${result.isValid ? 'valid' : 'invalid'}.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setScanned(false);
-              if (result.isValid) {
-                navigation.goBack();
-              }
-            },
-          },
-        ]
-      );
     } catch (err) {
+      void addScanHistory({
+        envelopeId: 'unknown',
+        envelopeType: 'notarize',
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Failed to parse QR code',
+      });
+
       Alert.alert('Error', 'Failed to parse QR code', [
         { text: 'OK', onPress: () => setScanned(false) },
       ]);

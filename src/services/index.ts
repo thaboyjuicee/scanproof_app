@@ -1,9 +1,11 @@
 import { env } from '../config/env';
+import { EnvelopeService } from './envelope/envelope-service';
 import { FileUploadService } from './file-upload/file-upload-service';
 import { IpfsService } from './ipfs/ipfs-service';
 import { ProofService } from './proof/proof-service';
 import { SolanaService } from './solana/solana-service';
 import { StorageService } from './storage/storage-service';
+import { TicketService } from './ticket/ticket-service';
 import { VerificationService } from './verification/verification-service';
 import { MwaWalletService } from './wallet/mwa-wallet-service';
 
@@ -13,6 +15,8 @@ const solanaService = new SolanaService(env.solanaRpcUrl);
 export const services = {
   storageService,
   solanaService,
+  envelopeService: new EnvelopeService(),
+  ticketService: new TicketService(),
   ipfsService: new IpfsService(env.ipfsUploadUrl, env.ipfsGatewayUrl, env.pinataJwt),
   proofService: new ProofService(),
   verificationService: new VerificationService(),

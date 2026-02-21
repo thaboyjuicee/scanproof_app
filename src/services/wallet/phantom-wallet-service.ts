@@ -158,6 +158,10 @@ export class PhantomWalletService implements WalletService {
     return signedPayload;
   }
 
+  async sendTransaction(): Promise<string> {
+    throw new AppError('Transaction sending is not implemented for Phantom deep-link service.', 'WALLET_TX_UNSUPPORTED');
+  }
+
   verifySignedPayload(payload: SignedPayload): boolean {
     return nacl.sign.detached.verify(
       utf8Encode(payload.message),

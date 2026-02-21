@@ -4,3 +4,4 @@ export { WalletButton } from './WalletButton';
 export { VerifiedBadge } from './VerifiedBadge';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { GradientText } from './GradientText';
+export { ProofEnvelopeModal } from './proof-envelope-modal';

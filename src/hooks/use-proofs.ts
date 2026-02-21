@@ -1,11 +1,47 @@
 import { useAppState } from '../state/app-state';
 
 export const useProofs = () => {
-  const { proofs, createProof, verifyProof, verifyMultipleProofs, loading, error, clearError } = useAppState();
+  const {
+    proofs,
+    issuedEnvelopes,
+    questClaims,
+    scanHistory,
+    ticketRedemptions,
+    createProof,
+    createQuestEnvelope,
+    createTicketEnvelope,
+    issueNotarizeEnvelope,
+    encodeEnvelopeToQr,
+    decodeEnvelopeFromQr,
+    verifyEnvelope,
+    claimQuest,
+    checkTicketRedeemed,
+    redeemTicket,
+    addScanHistory,
+    verifyProof,
+    verifyMultipleProofs,
+    loading,
+    error,
+    clearError,
+  } = useAppState();
 
   return {
     proofs,
+    issuedEnvelopes,
+    questClaims,
+    scanHistory,
+    ticketRedemptions,
     createProof,
+    createQuestEnvelope,
+    createTicketEnvelope,
+    issueNotarizeEnvelope,
+    encodeEnvelopeToQr,
+    decodeEnvelopeFromQr,
+    verifyEnvelope,
+    claimQuest,
+    checkTicketRedeemed,
+    redeemTicket,
+    addScanHistory,
     verifyProof,
     verifyMultipleProofs,
     loading,

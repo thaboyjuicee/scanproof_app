@@ -7,15 +7,16 @@ import { Proof } from '../models/proof';
 interface QRModalProps {
   visible: boolean;
   proof: Proof | null;
+  qrValue?: string;
   onClose: () => void;
 }
 
-export const QRModal = ({ visible, proof, onClose }: QRModalProps): React.JSX.Element => {
+export const QRModal = ({ visible, proof, qrValue, onClose }: QRModalProps): React.JSX.Element => {
   if (!proof) {
     return <></>;
   }
 
-  const qrData = JSON.stringify({
+  const fallbackQrData = JSON.stringify({
     proofId: proof.id,
     title: proof.title,
     ownerWallet: proof.ownerWallet,
@@ -36,7 +37,7 @@ export const QRModal = ({ visible, proof, onClose }: QRModalProps): React.JSX.El
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.qrContainer}>
               <QRCode
-                value={qrData}
+                value={qrValue ?? fallbackQrData}
                 size={280}
                 color="#222"
                 backgroundColor="#fff"

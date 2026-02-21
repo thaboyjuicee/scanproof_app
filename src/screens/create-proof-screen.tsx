@@ -4,15 +4,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { QRModal } from '../components/qr-modal';
 import { Proof, ProofType } from '../models/proof';
 import { useProofs } from '../hooks/use-proofs';
-import { CardContainer, GradientButton, GradientText } from '../components';
+import { CardContainer, GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 
 const PROOF_TYPES: ProofType[] = ['text', 'photo', 'document'];
 
 export const CreateProofScreen = (): React.JSX.Element => {
-  const { createProof, loading, error, clearError } = useProofs();
+  const { createProof, issueNotarizeEnvelope, encodeEnvelopeToQr, loading, error, clearError } = useProofs();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [urlLink, setUrlLink] = useState('');
@@ -21,7 +20,7 @@ export const CreateProofScreen = (): React.JSX.Element => {
   const [proofType, setProofType] = useState<ProofType>('text');
   const [uploadToIpfs, setUploadToIpfs] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
-  const [generatedProof, setGeneratedProof] = useState<Proof | null>(null);
+  const [qrValue, setQrValue] = useState<string | null>(null);
 
   const pickFile = async (): Promise<void> => {
     try {
@@ -50,35 +49,27 @@ export const CreateProofScreen = (): React.JSX.Element => {
     }
 
     try {
-      // Create the proof through the hook
-      await createProof(title, description, proofType, uploadToIpfs, fileUri || undefined);
-      
-      // Show success and generate QR
-      setTimeout(() => {
-        // Generate a proof ID based on title and timestamp
-        const proofId = `${title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
-        const generatedProof: Proof = {
-          id: proofId,
-          title,
-          description,
-          proofType,
-          hash: 'pending',
-          ownerWallet: 'user-wallet',
-          timestampIso: new Date().toISOString(),
-        };
-        setGeneratedProof(generatedProof);
-        setQrModalVisible(true);
-      }, 500);
-      
-      // Reset form after showing QR
-      setTimeout(() => {
-        setTitle('');
-        setDescription('');
-        setUrlLink('');
-        setFileName(null);
-        setFileUri(null);
-        setProofType('text');
-      }, 1000);
+      const nextProof = await createProof(title, description, proofType, uploadToIpfs, fileUri || undefined);
+      if (!nextProof) {
+        Alert.alert('Error', 'Failed to create notarization proof.');
+        return;
+      }
+
+      const envelope = await issueNotarizeEnvelope(nextProof);
+      if (!envelope) {
+        Alert.alert('Error', 'Proof saved but QR envelope could not be issued.');
+        return;
+      }
+
+      setQrValue(encodeEnvelopeToQr(envelope));
+      setQrModalVisible(true);
+
+      setTitle('');
+      setDescription('');
+      setUrlLink('');
+      setFileName(null);
+      setFileUri(null);
+      setProofType('text');
     } catch (err) {
       Alert.alert('Error', 'Failed to create proof');
     }
@@ -89,8 +80,8 @@ export const CreateProofScreen = (): React.JSX.Element => {
       <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <GradientText style={styles.title}>Create Proof</GradientText>
-            <Text style={styles.subtitle}>Create a blockchain-anchored digital certificate</Text>
+            <GradientText style={styles.title}>Notarize File</GradientText>
+            <Text style={styles.subtitle}>Create a notarization credential with verifiable QR envelope</Text>
           </View>
 
           <CardContainer>
@@ -179,7 +170,7 @@ export const CreateProofScreen = (): React.JSX.Element => {
           ) : null}
 
           <GradientButton
-            title={loading ? 'Creating Proof...' : 'Create Proof'}
+            title={loading ? 'Creating Notarization...' : 'Create Notarize QR'}
             onPress={() => void onCreate()}
             disabled={loading || !title.trim()}
             icon={loading ? undefined : 'plus-circle'}
@@ -187,9 +178,11 @@ export const CreateProofScreen = (): React.JSX.Element => {
         </ScrollView>
       </LinearGradient>
 
-      <QRModal
+      <ProofEnvelopeModal
         visible={qrModalVisible}
-        proof={generatedProof}
+        title="Notarize QR Ready"
+        subtitle="Scan to verify file certificate envelope."
+        qrValue={qrValue}
         onClose={() => setQrModalVisible(false)}
       />
     </>
