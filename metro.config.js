@@ -2,6 +2,9 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
+// Avoid Metro package exports warnings for dependencies with incomplete exports maps.
+config.resolver.unstable_enablePackageExports = false;
+
 // Workaround for css-tree package.json resolution issue
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,

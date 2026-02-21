@@ -67,7 +67,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
             placeholderTextColor="#9ca3af"
           />
 
-          <GradientButton title={loading ? 'Creating...' : 'Create Ticket QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="ticket" />
+          <GradientButton title={loading ? 'Creating...' : 'Create Ticket QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="tag" />
         </ScrollView>
       </LinearGradient>
 

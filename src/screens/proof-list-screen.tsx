@@ -1,139 +1,630 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Image, Linking, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import QRCode from 'react-native-qrcode-svg';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
 
+import { env } from '../config/env';
 import { useProofs } from '../hooks/use-proofs';
-import { RootStackParamList } from '../types/navigation';
-import { CardContainer, GradientText, VerifiedBadge } from '../components';
+import { useWallet } from '../hooks/use-wallet';
+import { CardContainer, GradientButton, LoadingSkeleton } from '../components';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type ProofbookFilter = 'all' | 'quest' | 'notarize' | 'ticket';
+type ProofbookType = 'quest' | 'notarize' | 'ticket' | 'legacy';
+
+interface ProofbookItem {
+  id: string;
+  type: ProofbookType;
+  title: string;
+  description: string;
+  createdAt: string;
+  qrValue?: string;
+  badgeImageUrl?: string;
+  solanaSignature?: string;
+  redeemed?: boolean;
+}
+
+const TYPE_CONFIG = {
+  quest:    { color: '#7C3AED', lightBg: '#F5F3FF', borderColor: '#DDD6FE', label: 'Quest' },
+  notarize: { color: '#2563EB', lightBg: '#EFF6FF', borderColor: '#BFDBFE', label: 'Notarized' },
+  ticket:   { color: '#059669', lightBg: '#ECFDF5', borderColor: '#A7F3D0', label: 'Ticket' },
+  legacy:   { color: '#6B7280', lightBg: '#F9FAFB', borderColor: '#E5E7EB', label: 'Proof' },
+} as const;
+
+const formatDate = (iso: string): string => {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+};
+
+const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
+  if (!rawEnvelope || typeof rawEnvelope !== 'object') {
+    return undefined;
+  }
+
+  const payload = (rawEnvelope as { payload?: Record<string, unknown> }).payload;
+  const badge = payload?.badgeImageUrl;
+  return typeof badge === 'string' ? badge : undefined;
+};
 
 export const ProofListScreen = (): React.JSX.Element => {
-  const navigation = useNavigation<NavigationProp>();
-  const { proofs, questClaims, issuedEnvelopes, scanHistory } = useProofs();
-  const issuedNotarize = issuedEnvelopes.filter((item) => item.type === 'notarize');
-  const issuedQuestOrTicket = issuedEnvelopes.filter((item) => item.type === 'quest' || item.type === 'ticket');
+  const navigation = useNavigation();
+  const { walletSession, connectWallet } = useWallet();
+  const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
+  const [activeFilter, setActiveFilter] = useState<ProofbookFilter>('all');
+  const qrRefs = useRef<Record<string, any>>({});
 
-  return (
-    <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <GradientText style={styles.title}>Proofbook</GradientText>
-          <Text style={styles.subtitle}>Claims, issued credentials, notarizations, and scan history.</Text>
+  const proofItems = useMemo<ProofbookItem[]>(() => {
+    const notarizeIds = new Set(issuedEnvelopes.filter((item) => item.type === 'notarize').map((item) => item.id));
+
+    const issuedItems: ProofbookItem[] = issuedEnvelopes.map((item) => {
+      const payload = item.payload as any;
+      const redeemed = item.type === 'ticket'
+        ? ticketRedemptions.some((record) => record.envelopeId === item.id)
+        : undefined;
+      const redemption = item.type === 'ticket'
+        ? ticketRedemptions.find((record) => record.envelopeId === item.id)
+        : undefined;
+
+      const title = item.type === 'quest'
+        ? payload?.title ?? 'Quest'
+        : item.type === 'ticket'
+          ? payload?.eventName ?? 'Ticket'
+          : payload?.title ?? 'Notarized File';
+
+      const description = item.type === 'quest'
+        ? payload?.label ?? 'Quest check-in'
+        : item.type === 'ticket'
+          ? payload?.venue ?? 'Admission ticket'
+          : payload?.description ?? 'Notarized file';
+
+      return {
+        id: item.id,
+        type: item.type,
+        title,
+        description,
+        createdAt: item.issuedAt,
+        qrValue: encodeEnvelopeToQr(item),
+        badgeImageUrl: getBadgeImageUrl(item),
+        redeemed,
+        solanaSignature: redemption?.txSignature,
+      };
+    });
+
+    const legacyItems: ProofbookItem[] = proofs
+      .filter((proof) => !notarizeIds.has(proof.id))
+      .map((proof) => ({
+        id: proof.id,
+        type: 'legacy',
+        title: proof.title,
+        description: proof.description,
+        createdAt: proof.timestampIso,
+        qrValue: proof.qrCode,
+      }));
+
+    return [...issuedItems, ...legacyItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [encodeEnvelopeToQr, issuedEnvelopes, proofs, ticketRedemptions]);
+
+  const filteredItems = useMemo(() => {
+    if (activeFilter === 'all') {
+      return proofItems;
+    }
+
+    return proofItems.filter((item) => item.type === activeFilter);
+  }, [activeFilter, proofItems]);
+
+  const counts = useMemo(() => {
+    const countByType = proofItems.reduce<Record<ProofbookType, number>>(
+      (acc, item) => {
+        acc[item.type] += 1;
+        return acc;
+      },
+      { quest: 0, notarize: 0, ticket: 0, legacy: 0 }
+    );
+
+    return {
+      quests: countByType.quest,
+      notarized: countByType.notarize,
+      tickets: countByType.ticket,
+    };
+  }, [proofItems]);
+
+  const getVerificationUrl = useCallback((item: ProofbookItem): string => {
+    if (item.solanaSignature) {
+      const clusterQuery = env.solanaCluster === 'mainnet-beta' ? '' : `?cluster=${encodeURIComponent(env.solanaCluster)}`;
+      return `${env.solanaExplorerBaseUrl}/tx/${item.solanaSignature}${clusterQuery}`;
+    }
+
+    return item.qrValue ?? 'scanproof://proof';
+  }, []);
+
+  const getQrBase64 = useCallback((itemId: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const ref = qrRefs.current[itemId];
+      if (!ref || typeof ref.toDataURL !== 'function') {
+        resolve(null);
+        return;
+      }
+
+      ref.toDataURL((data: string) => resolve(data));
+    });
+  }, []);
+
+  const handleDownload = useCallback(async (item: ProofbookItem) => {
+    const base64 = await getQrBase64(item.id);
+    if (!base64) {
+      Alert.alert('Download Failed', 'Unable to generate QR image.');
+      return;
+    }
+
+    const permission = await MediaLibrary.requestPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Needed', 'Please allow photo access to save QR codes.');
+      return;
+    }
+
+    const fileUri = `${FileSystem.cacheDirectory ?? ''}scanproof_qr_${item.id}.png`;
+    await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+    await MediaLibrary.saveToLibraryAsync(fileUri);
+    Alert.alert('Saved', 'QR code saved to your photo library.');
+  }, [getQrBase64]);
+
+  const handleShare = useCallback(async (item: ProofbookItem) => {
+    const url = getVerificationUrl(item);
+    try {
+      await Share.share({ message: url });
+    } catch {
+      await Clipboard.setStringAsync(url);
+      Alert.alert('Copied', 'Verification link copied to clipboard.');
+    }
+  }, [getVerificationUrl]);
+
+  const renderHeader = (): React.JSX.Element => (
+    <View style={styles.headerWrap}>
+      <View style={styles.headerRow}>
+        <View>
+          <View style={styles.titleRow}>
+            <Feather name="book-open" size={32} color="#7C3AED" />
+            <Text style={styles.title}>Proofbook</Text>
+          </View>
+          <Text style={styles.subtitle}>{proofItems.length} proof(s) recorded</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('CreateTab' as never)} activeOpacity={0.8}>
+          <LinearGradient colors={['#9333ea', '#2563eb']} style={styles.createButton}>
+            <Feather name="grid" size={18} color="#ffffff" />
+            <Text style={styles.createButtonText}>Create Proof</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.statsRow}>
+        <View style={[styles.statCard, { backgroundColor: TYPE_CONFIG.quest.lightBg, borderColor: TYPE_CONFIG.quest.borderColor }]}>
+          <Text style={[styles.statValue, { color: TYPE_CONFIG.quest.color }]}>{counts.quests}</Text>
+          <Text style={[styles.statLabel, { color: TYPE_CONFIG.quest.color }]}>Quests</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: TYPE_CONFIG.notarize.lightBg, borderColor: TYPE_CONFIG.notarize.borderColor }]}>
+          <Text style={[styles.statValue, { color: TYPE_CONFIG.notarize.color }]}>{counts.notarized}</Text>
+          <Text style={[styles.statLabel, { color: TYPE_CONFIG.notarize.color }]}>Notarized</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: TYPE_CONFIG.ticket.lightBg, borderColor: TYPE_CONFIG.ticket.borderColor }]}>
+          <Text style={[styles.statValue, { color: TYPE_CONFIG.ticket.color }]}>{counts.tickets}</Text>
+          <Text style={[styles.statLabel, { color: TYPE_CONFIG.ticket.color }]}>Tickets</Text>
+        </View>
+      </View>
+
+      <View style={styles.tabsRow}>
+        {['all', 'quest', 'notarize', 'ticket'].map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            onPress={() => setActiveFilter(filter as ProofbookFilter)}
+            style={[styles.tab, activeFilter === filter && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, activeFilter === filter && styles.tabTextActive]}>
+              {filter === 'all' ? 'All' : filter === 'quest' ? 'Quests' : filter === 'notarize' ? 'Notarized' : 'Tickets'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={styles.tabDivider} />
+    </View>
+  );
+
+  const renderEmpty = (): React.JSX.Element => (
+    <CardContainer style={styles.emptyCard}>
+      <Feather name="book-open" size={40} color="#9ca3af" />
+      <Text style={styles.emptyTitle}>No proofs yet</Text>
+      <Text style={styles.emptySubtitle}>Create your first quest, notarize a file, or issue a ticket.</Text>
+      <GradientButton title="Create Your First Proof" icon="plus" onPress={() => navigation.navigate('CreateTab' as never)} />
+    </CardContainer>
+  );
+
+  const renderSkeleton = (): React.JSX.Element => (
+    <View style={styles.skeletonWrap}>
+      {[0, 1, 2, 3].map((item) => (
+        <View key={item} style={styles.skeletonCard}>
+          <LoadingSkeleton height={20} width="60%" />
+          <LoadingSkeleton height={14} width="80%" style={styles.skeletonSpacer} />
+          <LoadingSkeleton height={140} width="100%" style={styles.skeletonSpacer} />
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderItem = ({ item }: { item: ProofbookItem }): React.JSX.Element => {
+    const config = TYPE_CONFIG[item.type];
+    const badgeLabel = item.type === 'ticket'
+      ? item.redeemed ? 'Redeemed' : 'Ticket'
+      : config.label;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.typeDotWrap, { backgroundColor: config.lightBg, borderColor: config.borderColor }]}
+          >
+            <View style={[styles.typeDot, { backgroundColor: config.color }]} />
+          </View>
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDescription} numberOfLines={2}>{item.description}</Text>
+          </View>
+          <View style={[styles.typeBadge, { borderColor: config.borderColor, backgroundColor: config.lightBg }]}
+          >
+            <Text style={[styles.typeBadgeText, { color: config.color }]}>
+              {item.type === 'ticket' && item.redeemed ? '🔴 Redeemed' : `✓ ${badgeLabel}`}
+            </Text>
+          </View>
         </View>
 
-        <CardContainer>
-          <Text style={styles.sectionTitle}>Claims</Text>
-          {questClaims.length === 0 ? (
-            <Text style={styles.emptyText}>No quest claims yet.</Text>
-          ) : (
-            questClaims.slice(0, 8).map((item) => (
-              <View key={item.id} style={styles.rowItem}>
-                <Feather name="check-circle" size={16} color="#16a34a" />
-                <Text style={styles.rowText}>{item.envelopeId}</Text>
-                <Text style={styles.timeText}>{new Date(item.claimedAt).toLocaleDateString()}</Text>
-              </View>
-            ))
-          )}
-        </CardContainer>
+        {item.badgeImageUrl ? (
+          <View style={styles.badgeImageWrap}>
+            <Image source={{ uri: item.badgeImageUrl }} style={styles.badgeImage} />
+          </View>
+        ) : null}
 
-        <CardContainer>
-          <Text style={styles.sectionTitle}>Issued</Text>
-          {issuedQuestOrTicket.length === 0 ? (
-            <Text style={styles.emptyText}>No quest or ticket credentials issued.</Text>
-          ) : (
-            issuedQuestOrTicket.slice(0, 8).map((item) => (
-              <View key={item.id} style={styles.rowItem}>
-                <VerifiedBadge label={item.type.toUpperCase()} variant="info" />
-                <Text style={styles.rowText}>{item.id}</Text>
-              </View>
-            ))
-          )}
-        </CardContainer>
+        <View style={styles.dateRow}>
+          <Feather name="clock" size={12} color="#9ca3af" />
+          <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+        </View>
 
-        <CardContainer>
-          <Text style={styles.sectionTitle}>Notarizations</Text>
-          {proofs.length === 0 && issuedNotarize.length === 0 ? (
-            <Text style={styles.emptyText}>No notarizations yet.</Text>
-          ) : (
-            proofs.slice(0, 8).map((item) => (
-              <TouchableOpacity key={item.id} style={styles.rowItem} onPress={() => navigation.navigate('ProofDetails', { proof: item })}>
-                <Feather name="file-text" size={16} color="#7c3aed" />
-                <Text style={styles.rowText}>{item.title}</Text>
-                <Feather name="chevron-right" size={16} color="#7c3aed" />
-              </TouchableOpacity>
-            ))
-          )}
-        </CardContainer>
+        {item.qrValue ? (
+          <View style={styles.qrWrap}>
+            <QRCode
+              value={item.qrValue}
+              size={144}
+              color="#111827"
+              backgroundColor="#ffffff"
+              getRef={(ref) => {
+                if (ref) {
+                  qrRefs.current[item.id] = ref;
+                }
+              }}
+            />
+          </View>
+        ) : null}
 
-        <CardContainer>
-          <Text style={styles.sectionTitle}>Scan History</Text>
-          {scanHistory.length === 0 ? (
-            <Text style={styles.emptyText}>No scans yet.</Text>
-          ) : (
-            scanHistory.slice(0, 12).map((item) => (
-              <View key={item.id} style={styles.rowItem}>
-                <Feather name={item.status === 'ok' ? 'check-circle' : 'alert-circle'} size={16} color={item.status === 'ok' ? '#16a34a' : '#dc2626'} />
-                <Text style={styles.rowText}>{item.envelopeType} · {item.envelopeId}</Text>
-                <Text style={styles.timeText}>{new Date(item.scannedAt).toLocaleTimeString()}</Text>
-              </View>
-            ))
-          )}
-        </CardContainer>
-      </ScrollView>
-    </LinearGradient>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => void handleDownload(item)}>
+            <Feather name="download" size={16} color="#7C3AED" />
+            <Text style={styles.actionText}>Download</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => void handleShare(item)}>
+            <Feather name="share-2" size={16} color="#7C3AED" />
+            <Text style={styles.actionText}>Share</Text>
+          </TouchableOpacity>
+        </View>
+
+        {item.solanaSignature ? (
+          <TouchableOpacity onPress={() => void Linking.openURL(getVerificationUrl(item))}>
+            <Text style={styles.explorerLink}>View on Solana Explorer ↗</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  };
+
+  if (!walletSession) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.disconnectedWrap}>
+          <View style={styles.disconnectedCard}>
+            <LinearGradient colors={['#9333ea', '#2563eb']} style={styles.disconnectedIcon}>
+              <Feather name="book-open" size={32} color="#ffffff" />
+            </LinearGradient>
+            <Text style={styles.disconnectedTitle}>Your Proofbook</Text>
+            <Text style={styles.disconnectedSubtitle}>Connect your wallet to see all your proofs, claims, and badges.</Text>
+            <GradientButton title="Connect Wallet" icon="link-2" onPress={() => void connectWallet()} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
   );
 };
 
-
 const styles = StyleSheet.create({
-  gradient: {
+  safeArea: {
     flex: 1,
+    backgroundColor: '#f8fafc',
   },
-  container: {
-    flexGrow: 1,
+  listContent: {
     padding: 20,
+    paddingBottom: 32,
+  },
+  headerWrap: {
+    marginBottom: 16,
+    gap: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  header: {
-    paddingBottom: 4,
-    gap: 8,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
+    color: '#111827',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  rowItem: {
+  createButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  rowText: {
-    flex: 1,
-    color: '#374151',
+  createButtonText: {
+    color: '#ffffff',
     fontSize: 13,
+    fontWeight: '600',
   },
-  emptyText: {
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  tab: {
+    paddingBottom: 8,
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#7C3AED',
+  },
+  tabText: {
     fontSize: 13,
     color: '#6b7280',
+    fontWeight: '500',
   },
-  timeText: {
+  tabTextActive: {
+    color: '#7C3AED',
+    fontWeight: '700',
+  },
+  tabDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+  },
+  cardSpacer: {
+    height: 16,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#f3f4f6',
+    padding: 16,
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+    gap: 12,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  typeDotWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  cardHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  typeBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  typeBadgeText: {
     fontSize: 11,
+    fontWeight: '700',
+  },
+  badgeImageWrap: {
+    alignItems: 'center',
+  },
+  badgeImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateText: {
+    fontSize: 12,
     color: '#9ca3af',
+  },
+  qrWrap: {
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionText: {
+    color: '#7C3AED',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  explorerLink: {
+    textAlign: 'center',
+    color: '#7C3AED',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  disconnectedWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  disconnectedCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  disconnectedIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disconnectedTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  disconnectedSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  skeletonWrap: {
+    gap: 16,
+  },
+  skeletonCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    gap: 10,
+  },
+  skeletonSpacer: {
+    marginTop: 8,
   },
 });
 
