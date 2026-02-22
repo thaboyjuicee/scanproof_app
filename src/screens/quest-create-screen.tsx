@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { GradientButton, GradientText, ProofEnvelopeModal } from '../components';
@@ -17,6 +19,9 @@ export const QuestCreateScreen = (): React.JSX.Element => {
   const [badgeImage, setBadgeImage] = useState('');
   const [validFrom, setValidFrom] = useState(nowIso);
   const [validTo, setValidTo] = useState(defaultValidTo);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<'from' | 'to' | null>(null);
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
   const [claimLimit, setClaimLimit] = useState<'once' | 'daily'>('once');
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
@@ -42,6 +47,63 @@ export const QuestCreateScreen = (): React.JSX.Element => {
 
     setQrValue(encodeEnvelopeToQr(envelope));
     setVisible(true);
+  };
+
+  const pickBadgeImage = async (): Promise<void> => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setBadgeImage(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to pick badge image.');
+    }
+  };
+
+  const openDatePicker = (field: 'from' | 'to', mode: 'date' | 'time'): void => {
+    setActiveDateField(field);
+    setDatePickerMode(mode);
+    setShowDatePicker(true);
+  };
+
+  const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date): void => {
+    if (_event.type === 'dismissed' || !selectedDate) {
+      setShowDatePicker(false);
+      setActiveDateField(null);
+      return;
+    }
+
+    const baseIso = activeDateField === 'from' ? validFrom : validTo;
+    const base = new Date(baseIso);
+    const updated = new Date(base);
+
+    if (datePickerMode === 'date') {
+      updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    } else {
+      updated.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
+    }
+
+    const iso = updated.toISOString();
+    if (activeDateField === 'from') {
+      setValidFrom(iso);
+    } else if (activeDateField === 'to') {
+      setValidTo(iso);
+    }
+
+    setShowDatePicker(false);
+    setActiveDateField(null);
+  };
+
+  const formatDate = (iso: string): string => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) {
+      return iso;
+    }
+    return date.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
 
   return (
@@ -72,21 +134,46 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           <Text style={styles.label}>Community</Text>
           <TextInput style={styles.input} value={community} onChangeText={setCommunity} placeholder="Optional community" placeholderTextColor="#9ca3af" />
 
-          <Text style={styles.label}>Badge Image URL</Text>
-          <TextInput
-            style={styles.input}
-            value={badgeImage}
-            onChangeText={setBadgeImage}
-            autoCapitalize="none"
-            placeholder="Optional badge image URL"
-            placeholderTextColor="#9ca3af"
-          />
+          <Text style={styles.label}>Badge Image (optional)</Text>
+          <TouchableOpacity style={styles.fileButton} onPress={() => void pickBadgeImage()} activeOpacity={0.8}>
+            {badgeImage ? (
+              <Image source={{ uri: badgeImage }} style={styles.badgePreview} />
+            ) : (
+              <View style={styles.badgePlaceholder}>
+                <Text style={styles.badgePlaceholderText}>Select from gallery</Text>
+              </View>
+            )}
+            <View style={styles.fileButtonTextWrap}>
+              <Text style={styles.fileButtonTitle}>{badgeImage ? 'Badge image selected' : 'Choose badge image'}</Text>
+              <Text style={styles.fileButtonHint}>{badgeImage ? 'Tap to change' : 'PNG or JPG recommended'}</Text>
+            </View>
+          </TouchableOpacity>
 
-          <Text style={styles.label}>Valid From (ISO)</Text>
-          <TextInput style={styles.input} value={validFrom} onChangeText={setValidFrom} autoCapitalize="none" placeholderTextColor="#9ca3af" />
+          <Text style={styles.label}>Valid From</Text>
+          <View style={styles.dateRow}>
+            <View style={styles.dateInput}>
+              <Text style={styles.dateText}>{formatDate(validFrom)}</Text>
+            </View>
+            <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('from', 'date')} activeOpacity={0.8}>
+              <Text style={styles.dateButtonText}>Date</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('from', 'time')} activeOpacity={0.8}>
+              <Text style={styles.dateButtonText}>Time</Text>
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.label}>Valid To (ISO)</Text>
-          <TextInput style={styles.input} value={validTo} onChangeText={setValidTo} autoCapitalize="none" placeholderTextColor="#9ca3af" />
+          <Text style={styles.label}>Valid To</Text>
+          <View style={styles.dateRow}>
+            <View style={styles.dateInput}>
+              <Text style={styles.dateText}>{formatDate(validTo)}</Text>
+            </View>
+            <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('to', 'date')} activeOpacity={0.8}>
+              <Text style={styles.dateButtonText}>Date</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('to', 'time')} activeOpacity={0.8}>
+              <Text style={styles.dateButtonText}>Time</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Claim Limit</Text>
           <View style={styles.row}>
@@ -101,6 +188,15 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           <GradientButton title={loading ? 'Creating...' : 'Create Quest QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="check-circle" />
         </ScrollView>
       </LinearGradient>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date(activeDateField === 'from' ? validFrom : validTo)}
+          mode={datePickerMode}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+        />
+      )}
 
       <ProofEnvelopeModal
         visible={visible}
@@ -127,8 +223,82 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     backgroundColor: '#ffffff',
   },
+  dateInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: '#ffffff',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#ffffff',
+  },
+  dateButtonText: {
+    color: '#7C3AED',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  dateText: {
+    color: '#1f2937',
+    fontSize: 14,
+  },
   multilineInput: {
     minHeight: 88,
+  },
+  fileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#ffffff',
+  },
+  badgePreview: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+  },
+  badgePlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#f3e8ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+  },
+  badgePlaceholderText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#7C3AED',
+    textAlign: 'center',
+  },
+  fileButtonTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  fileButtonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  fileButtonHint: {
+    fontSize: 12,
+    color: '#6b7280',
   },
   row: { flexDirection: 'row', gap: 10, marginBottom: 6 },
   limitButton: {

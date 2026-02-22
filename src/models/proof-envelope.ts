@@ -26,6 +26,8 @@ export interface NotarizeEnvelopePayload {
 }
 
 export interface TicketEnvelopePayload {
+  title: string;
+  description?: string;
   eventName: string;
   venue?: string;
   validFrom: string;

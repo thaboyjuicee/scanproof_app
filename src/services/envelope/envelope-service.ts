@@ -198,6 +198,8 @@ export class EnvelopeService {
     }
 
     const compact: Record<string, unknown> = {
+      ti: payload.title,
+      de: payload.description,
       en: payload.eventName,
       vf: payload.validFrom,
       vt: payload.validTo,
@@ -239,6 +241,8 @@ export class EnvelopeService {
     }
 
     const expanded: Record<string, unknown> = {
+      title: payload.ti ?? payload.en,
+      description: payload.de,
       eventName: payload.en,
       validFrom: payload.vf,
       validTo: payload.vt,
@@ -330,7 +334,11 @@ export class EnvelopeService {
   }
 
   private assertTicketPayload(payload: Record<string, unknown>): void {
-    ensureString(payload.eventName, 'ticket event name');
+    const eventName = ensureString(payload.eventName, 'ticket event name');
+    if (typeof payload.title !== 'string' || !payload.title.trim()) {
+      payload.title = eventName;
+    }
+    ensureString(payload.title, 'ticket title');
     ensureString(payload.payloadHash, 'ticket payload hash');
     if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
       throw new AppError('Ticket validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');

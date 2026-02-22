@@ -46,6 +46,8 @@ interface AppStateContextValue {
     claimLimit: QuestClaimLimit;
   }) => Promise<ProofEnvelope<'quest'> | null>;
   createTicketEnvelope: (input: {
+    title: string;
+    description?: string;
     eventName: string;
     venue?: string;
     validFrom: string;
@@ -288,6 +290,8 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
   }, [walletSession, clearError, persistIssuedEnvelope, handleError]);
 
   const createTicketEnvelope = useCallback(async (input: {
+    title: string;
+    description?: string;
     eventName: string;
     venue?: string;
     validFrom: string;
@@ -304,6 +308,8 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
 
     try {
       const unsignedPayload: Omit<TicketEnvelopePayload, 'payloadHash'> = {
+        title: input.title.trim(),
+        description: input.description?.trim() || undefined,
         eventName: input.eventName.trim(),
         venue: input.venue?.trim() || undefined,
         validFrom: input.validFrom,

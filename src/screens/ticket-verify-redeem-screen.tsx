@@ -57,8 +57,16 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.label}>Title</Text>
+          <Text style={styles.value}>{envelope.payload.title}</Text>
           <Text style={styles.label}>Event</Text>
           <Text style={styles.value}>{envelope.payload.eventName}</Text>
+          {envelope.payload.description ? (
+            <>
+              <Text style={styles.label}>Description</Text>
+              <Text style={styles.value}>{envelope.payload.description}</Text>
+            </>
+          ) : null}
           {envelope.payload.venue ? (
             <>
               <Text style={styles.label}>Venue</Text>

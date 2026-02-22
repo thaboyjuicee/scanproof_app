@@ -50,7 +50,7 @@ const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
   }
 
   const payload = (rawEnvelope as { payload?: Record<string, unknown> }).payload;
-  const badge = payload?.badgeImageUrl;
+  const badge = payload?.badgeImageUrl ?? payload?.badgeImage;
   return typeof badge === 'string' ? badge : undefined;
 };
 
@@ -76,13 +76,13 @@ export const ProofListScreen = (): React.JSX.Element => {
       const title = item.type === 'quest'
         ? payload?.title ?? 'Quest'
         : item.type === 'ticket'
-          ? payload?.eventName ?? 'Ticket'
+          ? payload?.title ?? payload?.eventName ?? 'Ticket'
           : payload?.title ?? 'Notarized File';
 
       const description = item.type === 'quest'
         ? payload?.label ?? 'Quest check-in'
         : item.type === 'ticket'
-          ? payload?.venue ?? 'Admission ticket'
+          ? payload?.description ?? payload?.eventName ?? payload?.venue ?? 'Admission ticket'
           : payload?.description ?? 'Notarized file';
 
       return {
