@@ -17,7 +17,7 @@ const cardShadow = {
 
 export const HomeScreen = (): React.JSX.Element => {
   const navigation = useNavigation<any>();
-  const { walletSession, connectWallet } = useWallet();
+  const { walletSession, connectWallet, disconnectWallet } = useWallet();
   const isConnected = !!walletSession;
 
   const features = [
@@ -106,6 +106,19 @@ export const HomeScreen = (): React.JSX.Element => {
     }
   };
 
+  const onDisconnect = (): void => {
+    if (isConnected) {
+      void disconnectWallet();
+    }
+  };
+
+  const getShortAddress = (address?: string): string => {
+    if (!address) {
+      return '';
+    }
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -149,6 +162,18 @@ export const HomeScreen = (): React.JSX.Element => {
               </>
             )}
           </View>
+
+          {isConnected ? (
+            <View style={styles.walletMetaRow}>
+              <View style={styles.walletAddressPill}>
+                <Text style={styles.walletAddressLabel}>Connected:</Text>
+                <Text style={styles.walletAddressText}>{getShortAddress(walletSession?.walletAddress)}</Text>
+              </View>
+              <TouchableOpacity style={styles.disconnectButton} onPress={onDisconnect} activeOpacity={0.8}>
+                <Text style={styles.disconnectButtonText}>Disconnect</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -292,6 +317,47 @@ const styles = StyleSheet.create({
   outlineButtonText: {
     color: '#7C3AED',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  walletMetaRow: {
+    marginTop: 10,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  walletAddressPill: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd6fe',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  walletAddressLabel: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  walletAddressText: {
+    color: '#4c1d95',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  disconnectButton: {
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  disconnectButtonText: {
+    color: '#b91c1c',
+    fontSize: 12,
     fontWeight: '700',
   },
   section: {

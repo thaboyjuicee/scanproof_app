@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -59,6 +59,7 @@ export const ProofListScreen = (): React.JSX.Element => {
   const { walletSession, connectWallet } = useWallet();
   const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
   const [activeFilter, setActiveFilter] = useState<ProofbookFilter>('all');
+  const [selectedItem, setSelectedItem] = useState<ProofbookItem | null>(null);
   const qrRefs = useRef<Record<string, any>>({});
 
   const proofItems = useMemo<ProofbookItem[]>(() => {
@@ -186,6 +187,10 @@ export const ProofListScreen = (): React.JSX.Element => {
     }
   }, [getVerificationUrl]);
 
+  const handleView = useCallback((item: ProofbookItem) => {
+    setSelectedItem(item);
+  }, []);
+
   const renderHeader = (): React.JSX.Element => (
     <View style={styles.headerWrap}>
       <View style={styles.headerRow}>
@@ -310,6 +315,10 @@ export const ProofListScreen = (): React.JSX.Element => {
         ) : null}
 
         <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => void handleView(item)}>
+            <Feather name="eye" size={16} color="#7C3AED" />
+            <Text style={styles.actionText}>View</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => void handleDownload(item)}>
             <Feather name="download" size={16} color="#7C3AED" />
             <Text style={styles.actionText}>Download</Text>
@@ -358,6 +367,44 @@ export const ProofListScreen = (): React.JSX.Element => {
         ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={() => setSelectedItem(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Proof Details</Text>
+              <TouchableOpacity onPress={() => setSelectedItem(null)}>
+                <Feather name="x" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedItem?.qrValue ? (
+              <View style={styles.modalQrWrap}>
+                <QRCode value={selectedItem.qrValue} size={220} color="#111827" backgroundColor="#ffffff" />
+              </View>
+            ) : null}
+
+            <View style={styles.modalInfoRow}>
+              <Text style={styles.modalInfoLabel}>Title</Text>
+              <Text style={styles.modalInfoValue}>{selectedItem?.title}</Text>
+            </View>
+            <View style={styles.modalInfoRow}>
+              <Text style={styles.modalInfoLabel}>Description</Text>
+              <Text style={styles.modalInfoValue}>{selectedItem?.description}</Text>
+            </View>
+            <View style={styles.modalInfoRow}>
+              <Text style={styles.modalInfoLabel}>Type</Text>
+              <Text style={styles.modalInfoValue}>{selectedItem?.type}</Text>
+            </View>
+            <View style={styles.modalInfoRow}>
+              <Text style={styles.modalInfoLabel}>Created</Text>
+              <Text style={styles.modalInfoValue}>{selectedItem ? formatDate(selectedItem.createdAt) : ''}</Text>
+            </View>
+
+            <GradientButton title="Close" onPress={() => setSelectedItem(null)} icon="x" variant="secondary" />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -555,6 +602,53 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontSize: 12,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 16,
+    gap: 10,
+    maxHeight: '88%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalQrWrap: {
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+  },
+  modalInfoRow: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 10,
+    gap: 4,
+  },
+  modalInfoLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    color: '#9ca3af',
+    fontWeight: '700',
+  },
+  modalInfoValue: {
+    fontSize: 14,
+    color: '#1f2937',
   },
   explorerLink: {
     textAlign: 'center',
