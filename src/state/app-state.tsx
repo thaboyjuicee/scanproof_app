@@ -36,7 +36,11 @@ interface AppStateContextValue {
   verifyMultipleProofs: (proofs: Proof[]) => VerificationResult[];
   createQuestEnvelope: (input: {
     title: string;
+    description: string;
     label?: string;
+    location?: string;
+    community?: string;
+    badgeImage?: string;
     validFrom: string;
     validTo: string;
     claimLimit: QuestClaimLimit;
@@ -225,7 +229,11 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
 
   const createQuestEnvelope = useCallback(async (input: {
     title: string;
+    description: string;
     label?: string;
+    location?: string;
+    community?: string;
+    badgeImage?: string;
     validFrom: string;
     validTo: string;
     claimLimit: QuestClaimLimit;
@@ -239,9 +247,15 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     clearError();
 
     try {
+      const label = input.label?.trim() || input.community?.trim() || input.location?.trim() || undefined;
+
       const payload: QuestEnvelopePayload = {
         title: input.title.trim(),
-        label: input.label?.trim() || undefined,
+        description: input.description.trim(),
+        label,
+        location: input.location?.trim() || undefined,
+        community: input.community?.trim() || undefined,
+        badgeImage: input.badgeImage?.trim() || undefined,
         validFrom: input.validFrom,
         validTo: input.validTo,
         claimLimit: input.claimLimit,

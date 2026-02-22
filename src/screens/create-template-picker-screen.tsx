@@ -1,81 +1,94 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { FileText, Ticket, Users } from 'lucide-react-native';
 
-import { CardContainer, GradientText } from '../components';
+import { GradientText } from '../components';
 import { RootStackParamList } from '../types/navigation';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+const cardShadow = {
+  shadowColor: '#000000',
+  shadowOpacity: 0.06,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 2 } as const,
+  elevation: 2,
+};
+
 export const CreateTemplatePickerScreen = (): React.JSX.Element => {
   const navigation = useNavigation<NavigationProp>();
 
+  const templates = [
+    {
+      key: 'quest',
+      title: 'Quest Check-in',
+      description: 'IRL events & community check-ins with badge claiming',
+      colors: ['#7C3AED', '#8B5CF6'] as const,
+      Icon: Users,
+      onPress: () => navigation.navigate('QuestCreate'),
+    },
+    {
+      key: 'notarize',
+      title: 'Notarize File',
+      description: 'Certify any file with SHA-256 hash + wallet signature',
+      colors: ['#2563EB', '#06B6D4'] as const,
+      Icon: FileText,
+      onPress: () => navigation.navigate('NotarizeCreate'),
+    },
+    {
+      key: 'ticket',
+      title: 'Redeemable Gate Pass',
+      description: 'Issue tickets that verifiers can redeem on-chain',
+      colors: ['#059669', '#14B8A6'] as const,
+      Icon: Ticket,
+      onPress: () => navigation.navigate('TicketCreate'),
+    },
+  ];
+
   return (
-    <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <GradientText style={styles.title}>Create</GradientText>
-          <Text style={styles.subtitle}>Choose a template to generate a verifiable QR credential.</Text>
-        </View>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.header}>
+            <GradientText style={styles.title}>Create</GradientText>
+            <Text style={styles.subtitle}>Choose a template to generate a verifiable QR credential.</Text>
+          </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('QuestCreate')}>
-          <CardContainer>
-            <View style={styles.cardRow}>
-              <Feather name="map-pin" size={24} color="#9333ea" />
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>Quest Check-in</Text>
-                <Text style={styles.cardDescription}>Community organizer QR for quest attendance claims.</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#9333ea" />
-            </View>
-          </CardContainer>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('NotarizeCreate')}>
-          <CardContainer>
-            <View style={styles.cardRow}>
-              <Feather name="file-text" size={24} color="#9333ea" />
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>Notarize File</Text>
-                <Text style={styles.cardDescription}>Create file certificate proof with existing notarize flow.</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#9333ea" />
-            </View>
-          </CardContainer>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('TicketCreate')}>
-          <CardContainer>
-            <View style={styles.cardRow}>
-              <Feather name="tag" size={24} color="#9333ea" />
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>Redeemable Gate Pass</Text>
-                <Text style={styles.cardDescription}>Issue tickets that verifiers can redeem on-chain.</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#9333ea" />
-            </View>
-          </CardContainer>
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+          <View style={styles.cardsWrap}>
+            {templates.map((template) => (
+              <TouchableOpacity key={template.key} onPress={template.onPress} activeOpacity={0.9} style={styles.card}>
+                <LinearGradient colors={template.colors} style={styles.iconWrap}>
+                  <template.Icon size={20} color="#ffffff" strokeWidth={2.25} />
+                </LinearGradient>
+                <Text style={styles.cardTitle}>{template.title}</Text>
+                <Text style={styles.cardDescription}>{template.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#faf5ff',
+  },
   gradient: {
     flex: 1,
   },
   container: {
-    flex: 1,
     padding: 20,
-    gap: 14,
+    paddingBottom: 32,
   },
   header: {
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 18,
   },
   title: {
     fontSize: 28,
@@ -85,22 +98,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardsWrap: {
     gap: 12,
   },
-  cardText: {
-    flex: 1,
-    gap: 4,
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    ...cardShadow,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 16,
+    marginTop: 10,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#111827',
   },
   cardDescription: {
+    marginTop: 4,
     fontSize: 13,
     color: '#6b7280',
+    lineHeight: 18,
   },
 });

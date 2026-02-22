@@ -11,19 +11,25 @@ const defaultValidTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 export const QuestCreateScreen = (): React.JSX.Element => {
   const { createQuestEnvelope, encodeEnvelopeToQr, loading } = useProofs();
   const [title, setTitle] = useState('');
-  const [label, setLabel] = useState('');
+  const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [community, setCommunity] = useState('');
+  const [badgeImage, setBadgeImage] = useState('');
   const [validFrom, setValidFrom] = useState(nowIso);
   const [validTo, setValidTo] = useState(defaultValidTo);
   const [claimLimit, setClaimLimit] = useState<'once' | 'daily'>('once');
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const disabled = useMemo(() => !title.trim() || !validFrom.trim() || !validTo.trim(), [title, validFrom, validTo]);
+  const disabled = useMemo(() => !title.trim() || !description.trim() || !validFrom.trim() || !validTo.trim(), [title, description, validFrom, validTo]);
 
   const onCreate = async (): Promise<void> => {
     const envelope = await createQuestEnvelope({
       title,
-      label,
+      description,
+      location,
+      community,
+      badgeImage,
       validFrom,
       validTo,
       claimLimit,
@@ -48,8 +54,33 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           <Text style={styles.label}>Title *</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Quest title" placeholderTextColor="#9ca3af" />
 
-          <Text style={styles.label}>Community / Location</Text>
-          <TextInput style={styles.input} value={label} onChangeText={setLabel} placeholder="Optional label" placeholderTextColor="#9ca3af" />
+          <Text style={styles.label}>Description *</Text>
+          <TextInput
+            style={[styles.input, styles.multilineInput]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe the quest"
+            placeholderTextColor="#9ca3af"
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+
+          <Text style={styles.label}>Location</Text>
+          <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Optional location" placeholderTextColor="#9ca3af" />
+
+          <Text style={styles.label}>Community</Text>
+          <TextInput style={styles.input} value={community} onChangeText={setCommunity} placeholder="Optional community" placeholderTextColor="#9ca3af" />
+
+          <Text style={styles.label}>Badge Image URL</Text>
+          <TextInput
+            style={styles.input}
+            value={badgeImage}
+            onChangeText={setBadgeImage}
+            autoCapitalize="none"
+            placeholder="Optional badge image URL"
+            placeholderTextColor="#9ca3af"
+          />
 
           <Text style={styles.label}>Valid From (ISO)</Text>
           <TextInput style={styles.input} value={validFrom} onChangeText={setValidFrom} autoCapitalize="none" placeholderTextColor="#9ca3af" />
@@ -95,6 +126,9 @@ const styles = StyleSheet.create({
     padding: 12,
     color: '#1f2937',
     backgroundColor: '#ffffff',
+  },
+  multilineInput: {
+    minHeight: 88,
   },
   row: { flexDirection: 'row', gap: 10, marginBottom: 6 },
   limitButton: {

@@ -4,7 +4,11 @@ export type QuestClaimLimit = 'once' | 'daily';
 
 export interface QuestEnvelopePayload {
   title: string;
+  description?: string;
   label?: string;
+  location?: string;
+  community?: string;
+  badgeImage?: string;
   claimLimit: QuestClaimLimit;
   validFrom: string;
   validTo: string;
