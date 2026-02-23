@@ -299,10 +299,10 @@ export const ProofListScreen = (): React.JSX.Element => {
         </View>
 
         {item.qrValue ? (
-          <View style={styles.qrWrap}>
+          <View style={styles.hiddenQrWrap}>
             <QRCode
               value={item.qrValue}
-              size={144}
+              size={1}
               color="#111827"
               backgroundColor="#ffffff"
               getRef={(ref) => {
@@ -582,6 +582,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     backgroundColor: '#ffffff',
+  },
+  hiddenQrWrap: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+    overflow: 'hidden',
   },
   actionsRow: {
     flexDirection: 'row',
