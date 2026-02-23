@@ -183,6 +183,7 @@ export const CreateProofScreen = (): React.JSX.Element => {
         title="Notarize QR Ready"
         subtitle="Scan to verify file certificate envelope."
         qrValue={qrValue}
+        qrType="notarize"
         onClose={() => setQrModalVisible(false)}
       />
     </>

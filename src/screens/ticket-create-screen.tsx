@@ -173,6 +173,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
         title="Ticket QR Ready"
         subtitle="Door verifier can scan this QR to redeem if valid."
         qrValue={qrValue}
+        qrType="ticket"
         onClose={() => setVisible(false)}
       />
     </>

@@ -5,3 +5,4 @@ export { VerifiedBadge } from './VerifiedBadge';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { GradientText } from './GradientText';
 export { ProofEnvelopeModal } from './proof-envelope-modal';
+export { BrandedQrCard } from './BrandedQrCard';

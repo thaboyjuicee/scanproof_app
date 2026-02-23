@@ -203,6 +203,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
         title="Quest QR Ready"
         subtitle="Share this QR with attendees to claim the quest."
         qrValue={qrValue}
+        qrType="quest"
         onClose={() => setVisible(false)}
       />
     </>

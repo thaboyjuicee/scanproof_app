@@ -12,7 +12,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { env } from '../config/env';
 import { useProofs } from '../hooks/use-proofs';
 import { useWallet } from '../hooks/use-wallet';
-import { CardContainer, GradientButton, LoadingSkeleton } from '../components';
+import { BrandedQrCard, CardContainer, GradientButton, LoadingSkeleton } from '../components';
 
 type ProofbookFilter = 'all' | 'quest' | 'notarize' | 'ticket';
 type ProofbookType = 'quest' | 'notarize' | 'ticket' | 'legacy';
@@ -406,7 +406,12 @@ export const ProofListScreen = (): React.JSX.Element => {
 
             {selectedItem?.qrValue ? (
               <View style={styles.modalQrWrap}>
-                <QRCode value={selectedItem.qrValue} size={220} color="#111827" backgroundColor="#ffffff" />
+                <BrandedQrCard
+                  value={selectedItem.qrValue}
+                  size={180}
+                  type={selectedItem.type === 'legacy' ? 'default' : selectedItem.type}
+                  title={selectedItem.type === 'legacy' ? 'Proof QR' : undefined}
+                />
               </View>
             ) : null}
 

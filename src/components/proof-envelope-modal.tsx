@@ -1,16 +1,19 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { BrandedQrCard } from './BrandedQrCard';
+
+type EnvelopeQrType = 'quest' | 'ticket' | 'notarize' | 'default';
 
 interface ProofEnvelopeModalProps {
   visible: boolean;
   title: string;
   qrValue: string | null;
   subtitle?: string;
+  qrType?: EnvelopeQrType;
   onClose: () => void;
 }
 
-export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, onClose }: ProofEnvelopeModalProps): React.JSX.Element => {
+export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType = 'default', onClose }: ProofEnvelopeModalProps): React.JSX.Element => {
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
@@ -20,7 +23,7 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, onClose 
 
           {qrValue ? (
             <View style={styles.qrWrap}>
-              <QRCode value={qrValue} size={260} color="#111827" backgroundColor="#ffffff" />
+              <BrandedQrCard value={qrValue} size={240} type={qrType} title={title} subtitle={subtitle} />
             </View>
           ) : (
             <Text style={styles.errorText}>Unable to generate QR value.</Text>
