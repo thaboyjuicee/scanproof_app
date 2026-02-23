@@ -23,6 +23,12 @@ interface ProofbookItem {
   title: string;
   description: string;
   createdAt: string;
+  community?: string;
+  location?: string;
+  eventName?: string;
+  venue?: string;
+  validTo?: string;
+  recipientWallet?: string;
   qrValue?: string;
   badgeImageUrl?: string;
   solanaSignature?: string;
@@ -39,6 +45,20 @@ const TYPE_CONFIG = {
 const formatDate = (iso: string): string => {
   try {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+};
+
+const formatDateTime = (iso: string): string => {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   } catch {
     return iso;
   }
@@ -92,6 +112,12 @@ export const ProofListScreen = (): React.JSX.Element => {
         title,
         description,
         createdAt: item.issuedAt,
+        community: item.type === 'quest' ? payload?.community : undefined,
+        location: item.type === 'quest' ? payload?.location : undefined,
+        eventName: item.type === 'ticket' ? payload?.eventName : undefined,
+        venue: item.type === 'ticket' ? payload?.venue : undefined,
+        validTo: item.type === 'ticket' ? payload?.validTo : undefined,
+        recipientWallet: item.type === 'ticket' ? payload?.recipientWallet : undefined,
         qrValue: encodeEnvelopeToQr(item),
         badgeImageUrl: getBadgeImageUrl(item),
         redeemed,
@@ -396,6 +422,42 @@ export const ProofListScreen = (): React.JSX.Element => {
               <Text style={styles.modalInfoLabel}>Type</Text>
               <Text style={styles.modalInfoValue}>{selectedItem?.type}</Text>
             </View>
+            {selectedItem?.type === 'quest' && selectedItem.community ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Community</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem.community}</Text>
+              </View>
+            ) : null}
+            {selectedItem?.type === 'quest' && selectedItem.location ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Location</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem.location}</Text>
+              </View>
+            ) : null}
+            {selectedItem?.type === 'ticket' && selectedItem.eventName ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Event Name</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem.eventName}</Text>
+              </View>
+            ) : null}
+            {selectedItem?.type === 'ticket' && selectedItem.venue ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Venue</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem.venue}</Text>
+              </View>
+            ) : null}
+            {selectedItem?.type === 'ticket' && selectedItem.validTo ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Expiration</Text>
+                <Text style={styles.modalInfoValue}>{formatDateTime(selectedItem.validTo)}</Text>
+              </View>
+            ) : null}
+            {selectedItem?.type === 'ticket' && selectedItem.recipientWallet ? (
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>Recipient Wallet</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem.recipientWallet}</Text>
+              </View>
+            ) : null}
             <View style={styles.modalInfoRow}>
               <Text style={styles.modalInfoLabel}>Created</Text>
               <Text style={styles.modalInfoValue}>{selectedItem ? formatDate(selectedItem.createdAt) : ''}</Text>
