@@ -6,8 +6,8 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
+import { captureRef } from 'react-native-view-shot';
 
 import { env } from '../config/env';
 import { useProofs } from '../hooks/use-proofs';
@@ -80,7 +80,8 @@ export const ProofListScreen = (): React.JSX.Element => {
   const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
   const [activeFilter, setActiveFilter] = useState<ProofbookFilter>('all');
   const [selectedItem, setSelectedItem] = useState<ProofbookItem | null>(null);
-  const qrRefs = useRef<Record<string, any>>({});
+  const downloadViewRef = useRef<View>(null);
+  const [itemToDownload, setItemToDownload] = useState<ProofbookItem | null>(null);
 
   const proofItems = useMemo<ProofbookItem[]>(() => {
     const notarizeIds = new Set(issuedEnvelopes.filter((item) => item.type === 'notarize').map((item) => item.id));
@@ -172,36 +173,43 @@ export const ProofListScreen = (): React.JSX.Element => {
     return item.qrValue ?? 'scanproof://proof';
   }, []);
 
-  const getQrBase64 = useCallback((itemId: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const ref = qrRefs.current[itemId];
-      if (!ref || typeof ref.toDataURL !== 'function') {
-        resolve(null);
+  const handleDownload = useCallback(async (item: ProofbookItem) => {
+    try {
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Needed', 'Please allow photo access to save QR codes.');
         return;
       }
 
-      ref.toDataURL((data: string) => resolve(data));
-    });
+      // Set the item to download which will render the high-quality card
+      setItemToDownload(item);
+
+      // Wait a brief moment for the view to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!downloadViewRef.current) {
+        Alert.alert('Download Failed', 'Unable to generate QR image.');
+        setItemToDownload(null);
+        return;
+      }
+
+      // Capture at very high quality (1024x1024)
+      const uri = await captureRef(downloadViewRef, {
+        format: 'png',
+        quality: 1,
+        width: 1024,
+        height: 1024,
+      });
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('Saved', 'High-quality QR code saved to your photo library.');
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Download Failed', 'An error occurred while saving the QR code.');
+    } finally {
+      setItemToDownload(null);
+    }
   }, []);
-
-  const handleDownload = useCallback(async (item: ProofbookItem) => {
-    const base64 = await getQrBase64(item.id);
-    if (!base64) {
-      Alert.alert('Download Failed', 'Unable to generate QR image.');
-      return;
-    }
-
-    const permission = await MediaLibrary.requestPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission Needed', 'Please allow photo access to save QR codes.');
-      return;
-    }
-
-    const fileUri = `${FileSystem.cacheDirectory ?? ''}scanproof_qr_${item.id}.png`;
-    await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-    await MediaLibrary.saveToLibraryAsync(fileUri);
-    Alert.alert('Saved', 'QR code saved to your photo library.');
-  }, [getQrBase64]);
 
   const handleShare = useCallback(async (item: ProofbookItem) => {
     const url = getVerificationUrl(item);
@@ -324,22 +332,6 @@ export const ProofListScreen = (): React.JSX.Element => {
           <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
         </View>
 
-        {item.qrValue ? (
-          <View style={styles.hiddenQrWrap}>
-            <QRCode
-              value={item.qrValue}
-              size={1}
-              color="#111827"
-              backgroundColor="#ffffff"
-              getRef={(ref) => {
-                if (ref) {
-                  qrRefs.current[item.id] = ref;
-                }
-              }}
-            />
-          </View>
-        ) : null}
-
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionButton} onPress={() => void handleView(item)}>
             <Feather name="eye" size={16} color="#7C3AED" />
@@ -393,6 +385,20 @@ export const ProofListScreen = (): React.JSX.Element => {
         ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Hidden high-quality QR card for downloads */}
+      {itemToDownload?.qrValue ? (
+        <View style={styles.hiddenDownloadWrap}>
+          <View ref={downloadViewRef} collapsable={false}>
+            <BrandedQrCard
+              value={itemToDownload.qrValue}
+              size={900}
+              type={itemToDownload.type === 'legacy' ? 'default' : itemToDownload.type}
+              title={itemToDownload.type === 'legacy' ? 'Proof QR' : undefined}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalOverlay}>
@@ -650,13 +656,6 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     backgroundColor: '#ffffff',
   },
-  hiddenQrWrap: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    opacity: 0,
-    overflow: 'hidden',
-  },
   actionsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -793,6 +792,12 @@ const styles = StyleSheet.create({
   },
   skeletonSpacer: {
     marginTop: 8,
+  },
+  hiddenDownloadWrap: {
+    position: 'absolute',
+    left: -10000,
+    top: -10000,
+    opacity: 0,
   },
 });
 
