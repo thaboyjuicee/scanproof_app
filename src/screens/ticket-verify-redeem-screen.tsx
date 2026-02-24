@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -10,11 +10,13 @@ import { RootStackParamList } from '../types/navigation';
 type Props = NativeStackScreenProps<RootStackParamList, 'TicketVerifyRedeem'>;
 
 export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const { verifyEnvelope, checkTicketRedeemed, redeemTicket, loading } = useProofs();
   const envelope = route.params.envelope;
   const verification = useMemo(() => verifyEnvelope(envelope), [verifyEnvelope, envelope]);
   const [redeemed, setRedeemed] = useState<{ redeemed: boolean; signature?: string }>({ redeemed: false });
   const [explorerUrl, setExplorerUrl] = useState<string | null>(null);
+  const isCompact = width < 380;
 
   const refreshRedeemed = useCallback(async (): Promise<void> => {
     try {
@@ -47,7 +49,7 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
   return (
     <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
-        <GradientText style={styles.title}>Ticket Verify & Redeem</GradientText>
+        <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Ticket Verify & Redeem</GradientText>
         <Text style={styles.subtitle}>Verify organizer signature, expiry, and redemption state.</Text>
 
         <View style={styles.badges}>
@@ -113,8 +115,9 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flexGrow: 1, padding: 20, gap: 12 },
+  container: { flexGrow: 1, padding: 20, gap: 12, width: '100%', maxWidth: 760, alignSelf: 'center' },
   title: { fontSize: 28, fontWeight: '700' },
+  titleCompact: { fontSize: 24 },
   subtitle: { color: '#6b7280' },
   badges: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   card: {

@@ -1,9 +1,10 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FileText, Ticket, Users } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientText } from '../components';
 import { RootStackParamList } from '../types/navigation';
@@ -19,7 +20,9 @@ const cardShadow = {
 };
 
 export const CreateTemplatePickerScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const navigation = useNavigation<NavigationProp>();
+  const isCompact = width < 380;
 
   const templates = [
     {
@@ -53,13 +56,13 @@ export const CreateTemplatePickerScreen = (): React.JSX.Element => {
       <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <GradientText style={styles.title}>Create</GradientText>
+            <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Create</GradientText>
             <Text style={styles.subtitle}>Choose a template to generate a verifiable QR credential.</Text>
           </View>
 
           <View style={styles.cardsWrap}>
             {templates.map((template) => (
-              <TouchableOpacity key={template.key} onPress={template.onPress} activeOpacity={0.9} style={styles.card}>
+              <TouchableOpacity key={template.key} onPress={template.onPress} activeOpacity={0.9} style={[styles.card, isCompact && styles.cardCompact]}>
                 <LinearGradient colors={template.colors} style={styles.iconWrap}>
                   <template.Icon size={20} color="#ffffff" strokeWidth={2.25} />
                 </LinearGradient>
@@ -85,6 +88,9 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 32,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
   },
   header: {
     gap: 8,
@@ -93,6 +99,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
+  },
+  titleCompact: {
+    fontSize: 24,
   },
   subtitle: {
     fontSize: 14,
@@ -106,6 +115,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     ...cardShadow,
+  },
+  cardCompact: {
+    padding: 14,
   },
   iconWrap: {
     width: 40,

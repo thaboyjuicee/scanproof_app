@@ -1,9 +1,10 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Clock3, FileText, Lock, QrCode, Scan, Shield, Ticket, Users, Zap } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useWallet } from '../hooks/use-wallet';
 
@@ -16,9 +17,13 @@ const cardShadow = {
 };
 
 export const HomeScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const { walletSession, connectWallet, disconnectWallet } = useWallet();
   const isConnected = !!walletSession;
+  const isCompact = width < 380;
+  const featureCardWidth = width < 420 ? '100%' : '48%';
+  const proofTypeCardWidth = Math.min(240, Math.max(170, width - 96));
 
   const features = [
     {
@@ -120,27 +125,27 @@ export const HomeScreen = (): React.JSX.Element => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.heroSection}>
-          <LinearGradient colors={['#7C3AED', '#2563EB']} style={styles.heroIconWrap}>
-            <QrCode size={48} color="#ffffff" strokeWidth={2.25} />
+          <LinearGradient colors={['#7C3AED', '#2563EB']} style={[styles.heroIconWrap, isCompact && styles.heroIconWrapCompact]}>
+            <QrCode size={isCompact ? 40 : 48} color="#ffffff" strokeWidth={2.25} />
           </LinearGradient>
 
           <MaskedView
             style={styles.maskedView}
-            maskElement={<Text style={styles.appNameMask}>ScanProof</Text>}
+            maskElement={<Text style={[styles.appNameMask, isCompact && styles.appNameMaskCompact]}>ScanProof</Text>}
           >
             <LinearGradient colors={['#7C3AED', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={styles.appNameGradient}>ScanProof</Text>
+              <Text style={[styles.appNameGradient, isCompact && styles.appNameGradientCompact]}>ScanProof</Text>
             </LinearGradient>
           </MaskedView>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { maxWidth: Math.max(280, width - 48) }]}>
             Create and verify QR codes with blockchain-backed authenticity on Solana
           </Text>
 
-          <View style={styles.walletActionsRow}>
+          <View style={[styles.walletActionsRow, isCompact && styles.walletActionsRowCompact]}>
             {!isConnected ? (
               <TouchableOpacity activeOpacity={0.9} onPress={onConnect} style={styles.fullWidthButtonWrap}>
                 <LinearGradient colors={['#7C3AED', '#2563EB']} style={styles.primaryButton}>
@@ -149,13 +154,13 @@ export const HomeScreen = (): React.JSX.Element => {
               </TouchableOpacity>
             ) : (
               <>
-                <TouchableOpacity activeOpacity={0.9} onPress={goToCreate} style={styles.halfButtonWrap}>
+                <TouchableOpacity activeOpacity={0.9} onPress={goToCreate} style={[styles.halfButtonWrap, isCompact && styles.fullWidthButtonWrap]}>
                   <LinearGradient colors={['#7C3AED', '#2563EB']} style={styles.primaryButton}>
                     <QrCode size={18} color="#ffffff" strokeWidth={2.25} />
                     <Text style={styles.primaryButtonText}>Create QR</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.9} onPress={goToScan} style={[styles.halfButtonWrap, styles.outlineButton]}>
+                <TouchableOpacity activeOpacity={0.9} onPress={goToScan} style={[styles.halfButtonWrap, isCompact && styles.fullWidthButtonWrap, styles.outlineButton]}>
                   <Scan size={18} color="#7C3AED" strokeWidth={2.25} />
                   <Text style={styles.outlineButtonText}>Scan QR</Text>
                 </TouchableOpacity>
@@ -180,7 +185,7 @@ export const HomeScreen = (): React.JSX.Element => {
           <Text style={styles.sectionTitle}>Why ScanProof?</Text>
           <View style={styles.featureGrid}>
             {features.map((feature) => (
-              <View key={feature.title} style={styles.featureCard}>
+              <View key={feature.title} style={[styles.featureCard, { width: featureCardWidth }]}>
                 <LinearGradient colors={feature.colors} style={styles.featureIconWrap}>
                   <feature.Icon size={24} color="#ffffff" strokeWidth={2.25} />
                 </LinearGradient>
@@ -195,7 +200,7 @@ export const HomeScreen = (): React.JSX.Element => {
           <Text style={styles.sectionTitle}>3 Types of On-Chain Proof</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {proofTypes.map((item) => (
-              <TouchableOpacity key={item.title} style={styles.proofTypeCard} activeOpacity={0.9} onPress={goToCreate}>
+              <TouchableOpacity key={item.title} style={[styles.proofTypeCard, { width: proofTypeCardWidth }]} activeOpacity={0.9} onPress={goToCreate}>
                 <LinearGradient colors={item.colors} style={styles.proofTypeIconWrap}>
                   <item.Icon size={20} color="#ffffff" strokeWidth={2.25} />
                 </LinearGradient>
@@ -241,7 +246,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 92,
+    paddingBottom: 24,
   },
   heroSection: {
     alignItems: 'center',
@@ -254,6 +259,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  heroIconWrapCompact: {
+    width: 68,
+    height: 68,
+    borderRadius: 14,
+  },
   maskedView: {
     marginTop: 16,
   },
@@ -262,11 +272,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
+  appNameMaskCompact: {
+    fontSize: 40,
+  },
   appNameGradient: {
     fontSize: 48,
     fontWeight: '900',
     color: 'transparent',
     textAlign: 'center',
+  },
+  appNameGradientCompact: {
+    fontSize: 40,
   },
   subtitle: {
     marginTop: 12,
@@ -281,6 +297,9 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     gap: 10,
+  },
+  walletActionsRowCompact: {
+    flexDirection: 'column',
   },
   fullWidthButtonWrap: {
     width: '100%',

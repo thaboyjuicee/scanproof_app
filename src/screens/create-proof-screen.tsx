@@ -25,7 +25,7 @@ export const CreateProofScreen = (): React.JSX.Element => {
   const pickFile = async (): Promise<void> => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ['images', 'videos'],
         aspect: [4, 3],
         quality: 1,
       });

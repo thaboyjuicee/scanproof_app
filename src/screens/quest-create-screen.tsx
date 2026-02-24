@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 import { useProofs } from '../hooks/use-proofs';
@@ -11,6 +12,8 @@ const nowIso = new Date().toISOString();
 const defaultValidTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
 export const QuestCreateScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { createQuestEnvelope, encodeEnvelopeToQr, loading } = useProofs();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -25,6 +28,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
   const [claimLimit, setClaimLimit] = useState<'once' | 'daily'>('once');
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const isCompact = width < 380;
 
   const disabled = useMemo(() => !title.trim() || !description.trim() || !validFrom.trim() || !validTo.trim(), [title, description, validFrom, validTo]);
 
@@ -52,7 +56,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
   const pickBadgeImage = async (): Promise<void> => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         quality: 1,
       });
 
@@ -109,8 +113,8 @@ export const QuestCreateScreen = (): React.JSX.Element => {
   return (
     <>
       <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <GradientText style={styles.title}>Quest Check-in</GradientText>
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: Math.max(24, insets.bottom + 16) }]}>
+          <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Quest Check-in</GradientText>
           <Text style={styles.subtitle}>Issue a quest QR for community check-ins.</Text>
 
           <Text style={styles.label}>Title *</Text>
@@ -135,7 +139,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           <TextInput style={styles.input} value={community} onChangeText={setCommunity} placeholder="Optional community" placeholderTextColor="#9ca3af" />
 
           <Text style={styles.label}>Badge Image (optional)</Text>
-          <TouchableOpacity style={styles.fileButton} onPress={() => void pickBadgeImage()} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.fileButton, isCompact && styles.fileButtonCompact]} onPress={() => void pickBadgeImage()} activeOpacity={0.8}>
             {badgeImage ? (
               <Image source={{ uri: badgeImage }} style={styles.badgePreview} />
             ) : (
@@ -150,7 +154,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           </TouchableOpacity>
 
           <Text style={styles.label}>Valid From</Text>
-          <View style={styles.dateRow}>
+          <View style={[styles.dateRow, isCompact && styles.dateRowCompact]}>
             <View style={styles.dateInput}>
               <Text style={styles.dateText}>{formatDate(validFrom)}</Text>
             </View>
@@ -163,7 +167,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           </View>
 
           <Text style={styles.label}>Valid To</Text>
-          <View style={styles.dateRow}>
+          <View style={[styles.dateRow, isCompact && styles.dateRowCompact]}>
             <View style={styles.dateInput}>
               <Text style={styles.dateText}>{formatDate(validTo)}</Text>
             </View>
@@ -176,7 +180,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
           </View>
 
           <Text style={styles.label}>Claim Limit</Text>
-          <View style={styles.row}>
+          <View style={[styles.row, isCompact && styles.rowCompact]}>
             <TouchableOpacity style={[styles.limitButton, claimLimit === 'once' && styles.limitButtonActive]} onPress={() => setClaimLimit('once')}>
               <Text style={[styles.limitText, claimLimit === 'once' && styles.limitTextActive]}>Once per wallet</Text>
             </TouchableOpacity>
@@ -212,8 +216,9 @@ export const QuestCreateScreen = (): React.JSX.Element => {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flexGrow: 1, padding: 20, gap: 10 },
+  container: { flexGrow: 1, padding: 20, gap: 10, width: '100%', maxWidth: 760, alignSelf: 'center' },
   title: { fontSize: 28, fontWeight: '700' },
+  titleCompact: { fontSize: 24 },
   subtitle: { color: '#6b7280', marginBottom: 6 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151' },
   input: {
@@ -236,6 +241,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  dateRowCompact: {
+    flexWrap: 'wrap',
   },
   dateButton: {
     borderWidth: 1,
@@ -266,6 +274,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     backgroundColor: '#ffffff',
+  },
+  fileButtonCompact: {
+    alignItems: 'flex-start',
   },
   badgePreview: {
     width: 48,
@@ -302,6 +313,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   row: { flexDirection: 'row', gap: 10, marginBottom: 6 },
+  rowCompact: { flexWrap: 'wrap' },
   limitButton: {
     flex: 1,
     borderWidth: 1,

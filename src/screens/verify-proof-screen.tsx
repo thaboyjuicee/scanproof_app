@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,10 +12,12 @@ import { CardContainer, GradientButton, GradientText, VerifiedBadge } from '../c
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyProof'>;
 
 export const VerifyProofScreen = ({ navigation }: Props): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const { proofs, verifyProof, verifyMultipleProofs } = useProofs();
   const [proofId, setProofId] = useState('');
   const [batchMode, setBatchMode] = useState(false);
   const [selectedProofs, setSelectedProofs] = useState<Set<string>>(new Set());
+  const isCompact = width < 380;
 
   const result = useMemo(() => {
     const match = proofs.find((proof) => proof.id === proofId.trim());
@@ -52,11 +54,11 @@ export const VerifyProofScreen = ({ navigation }: Props): React.JSX.Element => {
     <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <GradientText style={styles.title}>Verify Proof</GradientText>
+          <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Verify Proof</GradientText>
           <Text style={styles.subtitle}>Validate proof authenticity on the blockchain</Text>
         </View>
 
-        <View style={styles.modeSelector}>
+        <View style={[styles.modeSelector, isCompact && styles.modeSelectorCompact]}>
           <TouchableOpacity
             style={[styles.modeButton, !batchMode && styles.modeButtonActive]}
             onPress={() => {
@@ -242,6 +244,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     gap: 20,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
   },
   header: {
     gap: 8,
@@ -251,6 +256,9 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   subtitle: {
     fontSize: 14,
     color: '#6b7280',
@@ -258,6 +266,9 @@ const styles = StyleSheet.create({
   modeSelector: {
     flexDirection: 'row',
     gap: 12,
+  },
+  modeSelectorCompact: {
+    flexDirection: 'column',
   },
   modeButton: {
     flex: 1,

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -75,6 +75,7 @@ const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
 };
 
 export const ProofListScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const { walletSession, connectWallet } = useWallet();
   const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
@@ -82,6 +83,7 @@ export const ProofListScreen = (): React.JSX.Element => {
   const [selectedItem, setSelectedItem] = useState<ProofbookItem | null>(null);
   const downloadViewRef = useRef<View>(null);
   const [itemToDownload, setItemToDownload] = useState<ProofbookItem | null>(null);
+  const isCompact = width < 380;
 
   const proofItems = useMemo<ProofbookItem[]>(() => {
     const notarizeIds = new Set(issuedEnvelopes.filter((item) => item.type === 'notarize').map((item) => item.id));
@@ -227,7 +229,7 @@ export const ProofListScreen = (): React.JSX.Element => {
 
   const renderHeader = (): React.JSX.Element => (
     <View style={styles.headerWrap}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, isCompact && styles.headerRowCompact]}>
         <View>
           <View style={styles.titleRow}>
             <Feather name="book-open" size={32} color="#7C3AED" />
@@ -258,7 +260,7 @@ export const ProofListScreen = (): React.JSX.Element => {
         </View>
       </View>
 
-      <View style={styles.tabsRow}>
+      <View style={[styles.tabsRow, isCompact && styles.tabsRowCompact]}>
         {['all', 'quest', 'notarize', 'ticket'].map((filter) => (
           <TouchableOpacity
             key={filter}
@@ -381,7 +383,7 @@ export const ProofListScreen = (): React.JSX.Element => {
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { maxWidth: 920, alignSelf: 'center', width: '100%' }]}
         ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
         showsVerticalScrollIndicator={false}
       />
@@ -501,6 +503,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
+  headerRowCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -551,6 +557,10 @@ const styles = StyleSheet.create({
   tabsRow: {
     flexDirection: 'row',
     gap: 16,
+  },
+  tabsRowCompact: {
+    flexWrap: 'wrap',
+    gap: 12,
   },
   tab: {
     paddingBottom: 8,

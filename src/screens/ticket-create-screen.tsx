@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 import { useProofs } from '../hooks/use-proofs';
@@ -10,6 +11,8 @@ const nowIso = new Date().toISOString();
 const defaultValidTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
 export const TicketCreateScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { createTicketEnvelope, encodeEnvelopeToQr, loading } = useProofs();
   const [title, setTitle] = useState('');
   const [eventName, setEventName] = useState('');
@@ -28,6 +31,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
     () => !title.trim() || !eventName.trim() || !validFrom.trim() || !validTo.trim(),
     [title, eventName, validFrom, validTo]
   );
+  const isCompact = width < 380;
 
   const onCreate = async (): Promise<void> => {
     const envelope = await createTicketEnvelope({
@@ -94,8 +98,8 @@ export const TicketCreateScreen = (): React.JSX.Element => {
   return (
     <>
       <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <GradientText style={styles.title}>Redeemable Gate Pass</GradientText>
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: Math.max(24, insets.bottom + 16) }]}>
+          <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Redeemable Gate Pass</GradientText>
           <Text style={styles.subtitle}>Issue a ticket QR that can be redeemed on-chain.</Text>
 
           <Text style={styles.label}>Ticket Title *</Text>
@@ -120,7 +124,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
           <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder="Optional venue" placeholderTextColor="#9ca3af" />
 
           <Text style={styles.label}>Valid From</Text>
-          <View style={styles.dateRow}>
+          <View style={[styles.dateRow, isCompact && styles.dateRowCompact]}>
             <View style={styles.dateInput}>
               <Text style={styles.dateText}>{formatDate(validFrom)}</Text>
             </View>
@@ -133,7 +137,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
           </View>
 
           <Text style={styles.label}>Valid To</Text>
-          <View style={styles.dateRow}>
+          <View style={[styles.dateRow, isCompact && styles.dateRowCompact]}>
             <View style={styles.dateInput}>
               <Text style={styles.dateText}>{formatDate(validTo)}</Text>
             </View>
@@ -182,8 +186,9 @@ export const TicketCreateScreen = (): React.JSX.Element => {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  container: { flexGrow: 1, padding: 20, gap: 10 },
+  container: { flexGrow: 1, padding: 20, gap: 10, width: '100%', maxWidth: 760, alignSelf: 'center' },
   title: { fontSize: 28, fontWeight: '700' },
+  titleCompact: { fontSize: 24 },
   subtitle: { color: '#6b7280', marginBottom: 6 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151' },
   input: {
@@ -201,6 +206,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  dateRowCompact: {
+    flexWrap: 'wrap',
   },
   dateInput: {
     flex: 1,

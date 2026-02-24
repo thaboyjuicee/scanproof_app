@@ -33,11 +33,12 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     overflow: 'hidden',
+    minHeight: 48,
   },
   gradient: {
     flexDirection: 'row',
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -46,5 +47,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 });

@@ -1,17 +1,19 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { useWallet } from '../hooks/use-wallet';
 
 export const WalletConnectScreen = (): React.JSX.Element => {
+  const { width } = useWindowDimensions();
   const { walletSession, connectWallet, disconnectWallet, loading, error, clearError } = useWallet();
+  const isCompact = width < 380;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.icon}>{walletSession ? '✅' : '⚠️'}</Text>
-        <Text style={styles.title}>Wallet Connect</Text>
+        <Text style={[styles.icon, isCompact && styles.iconCompact]}>{walletSession ? '✅' : '⚠️'}</Text>
+        <Text style={[styles.title, isCompact && styles.titleCompact]}>Wallet Connect</Text>
         <Text style={styles.subtitle}>Connect your Solana wallet to create and verify proofs</Text>
       </View>
 
@@ -86,6 +88,9 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 20,
     backgroundColor: '#f9f9f9',
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
@@ -95,10 +100,16 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 48,
   },
+  iconCompact: {
+    fontSize: 42,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#222',
+  },
+  titleCompact: {
+    fontSize: 24,
   },
   subtitle: {
     fontSize: 14,
