@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Vi
 import { useNavigation } from '@react-navigation/native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Clock3, FileText, Lock, QrCode, Scan, Shield, Ticket, Users, Zap } from 'lucide-react-native';
+import { CheckCircle2, Clock3, FileText, Lock, LogOut, QrCode, Scan, Shield, Ticket, Users, Zap } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useWallet } from '../hooks/use-wallet';
@@ -169,12 +169,16 @@ export const HomeScreen = (): React.JSX.Element => {
           </View>
 
           {isConnected ? (
-            <View style={styles.walletMetaRow}>
+            <View style={[styles.walletMetaRow, isCompact && styles.walletMetaRowCompact]}>
               <View style={styles.walletAddressPill}>
-                <Text style={styles.walletAddressLabel}>Connected:</Text>
+                <View style={styles.connectionStatusRow}>
+                  <CheckCircle2 size={14} color="#16a34a" strokeWidth={2.4} />
+                  <Text style={styles.walletAddressLabel}>Connected</Text>
+                </View>
                 <Text style={styles.walletAddressText}>{getShortAddress(walletSession?.walletAddress)}</Text>
               </View>
-              <TouchableOpacity style={styles.disconnectButton} onPress={onDisconnect} activeOpacity={0.8}>
+              <TouchableOpacity style={[styles.disconnectButton, isCompact && styles.disconnectButtonCompact]} onPress={onDisconnect} activeOpacity={0.85}>
+                <LogOut size={16} color="#b91c1c" strokeWidth={2.4} />
                 <Text style={styles.disconnectButtonText}>Disconnect</Text>
               </TouchableOpacity>
             </View>
@@ -339,31 +343,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   walletMetaRow: {
-    marginTop: 10,
+    marginTop: 12,
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 8,
+  },
+  walletMetaRowCompact: {
+    flexDirection: 'column',
   },
   walletAddressPill: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd6fe',
+    borderColor: '#bbf7d0',
     backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  connectionStatusRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   walletAddressLabel: {
-    color: '#6b7280',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#15803d',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   walletAddressText: {
     color: '#4c1d95',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   disconnectButton: {
@@ -371,8 +389,15 @@ const styles = StyleSheet.create({
     borderColor: '#fecaca',
     backgroundColor: '#fef2f2',
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  disconnectButtonCompact: {
+    width: '100%',
   },
   disconnectButtonText: {
     color: '#b91c1c',

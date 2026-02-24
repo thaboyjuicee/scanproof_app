@@ -38,9 +38,27 @@ export const QuestClaimVerifyScreen = ({ route }: Props): React.JSX.Element => {
         <View style={styles.card}>
           <Text style={styles.label}>Quest</Text>
           <Text style={styles.value}>{envelope.payload.title}</Text>
+          {envelope.payload.community ? (
+            <>
+              <Text style={styles.label}>Community</Text>
+              <Text style={styles.value}>{envelope.payload.community}</Text>
+            </>
+          ) : null}
+          {envelope.payload.description ? (
+            <>
+              <Text style={styles.label}>Description</Text>
+              <Text style={styles.value}>{envelope.payload.description}</Text>
+            </>
+          ) : null}
+          {envelope.payload.location ? (
+            <>
+              <Text style={styles.label}>Location</Text>
+              <Text style={styles.value}>{envelope.payload.location}</Text>
+            </>
+          ) : null}
           {envelope.payload.label ? (
             <>
-              <Text style={styles.label}>Community / Location</Text>
+              <Text style={styles.label}>Label</Text>
               <Text style={styles.value}>{envelope.payload.label}</Text>
             </>
           ) : null}
