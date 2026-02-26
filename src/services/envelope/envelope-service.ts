@@ -214,6 +214,7 @@ export class EnvelopeService {
     };
     assignIfNonEmptyString(compact, 've', payload.venue);
     assignIfNonEmptyString(compact, 'rw', payload.recipientWallet);
+    assignIfNonEmptyString(compact, 'um', payload.usageMode);
     return compact;
   }
 
@@ -258,6 +259,7 @@ export class EnvelopeService {
     };
     assignIfString(expanded, 'venue', payload.ve);
     assignIfString(expanded, 'recipientWallet', payload.rw);
+    assignIfString(expanded, 'usageMode', payload.um);
     return expanded;
   }
 
@@ -346,7 +348,7 @@ export class EnvelopeService {
     if (type === 'notarize') {
       return ['fileName', 'fileHash', 'ipfsCid'];
     }
-    return ['description', 'venue', 'recipientWallet'];
+    return ['description', 'venue', 'recipientWallet', 'usageMode'];
   }
 
   assertValidEnvelope(value: unknown): asserts value is AnyProofEnvelope {
@@ -416,6 +418,12 @@ export class EnvelopeService {
       payload.title = eventName;
     }
     ensureString(payload.title, 'ticket title');
+    if (payload.usageMode !== undefined && payload.usageMode !== null) {
+      const usageMode = ensureString(payload.usageMode, 'ticket usage mode');
+      if (usageMode !== 'single' && usageMode !== 'multi') {
+        throw new AppError('Ticket usage mode must be single or multi.', 'ENVELOPE_VALIDATION_ERROR');
+      }
+    }
     ensureString(payload.payloadHash, 'ticket payload hash');
     if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
       throw new AppError('Ticket validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');

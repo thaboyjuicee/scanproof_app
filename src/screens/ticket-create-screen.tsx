@@ -24,6 +24,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
   const [activeDateField, setActiveDateField] = useState<'from' | 'to' | null>(null);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
   const [recipientWallet, setRecipientWallet] = useState('');
+  const [usageMode, setUsageMode] = useState<'single' | 'multi'>('single');
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -42,6 +43,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
       validFrom,
       validTo,
       recipientWallet,
+      usageMode,
     });
 
     if (!envelope) {
@@ -159,6 +161,29 @@ export const TicketCreateScreen = (): React.JSX.Element => {
             placeholderTextColor="#9ca3af"
           />
 
+          <Text style={styles.label}>Usage Mode</Text>
+          <View style={styles.modeRow}>
+            <TouchableOpacity
+              style={[styles.modeButton, usageMode === 'single' && styles.modeButtonActive]}
+              onPress={() => setUsageMode('single')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modeButtonText, usageMode === 'single' && styles.modeButtonTextActive]}>Single-use</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeButton, usageMode === 'multi' && styles.modeButtonActive]}
+              onPress={() => setUsageMode('multi')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modeButtonText, usageMode === 'multi' && styles.modeButtonTextActive]}>Multi-use</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.modeHint}>
+            {usageMode === 'single'
+              ? 'Single-use: first redemption locks the pass.'
+              : 'Multi-use: multiple attendees can redeem the same pass.'}
+          </Text>
+
           <GradientButton title={loading ? 'Creating...' : 'Create Ticket QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="tag" />
         </ScrollView>
       </LinearGradient>
@@ -234,5 +259,34 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontWeight: '600',
     fontSize: 13,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  modeButtonActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+  },
+  modeButtonText: {
+    color: '#6b7280',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  modeButtonTextActive: {
+    color: '#7C3AED',
+  },
+  modeHint: {
+    color: '#6b7280',
+    fontSize: 12,
   },
 });

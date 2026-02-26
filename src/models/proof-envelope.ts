@@ -34,6 +34,7 @@ export interface TicketEnvelopePayload {
   validFrom: string;
   validTo: string;
   recipientWallet?: string;
+  usageMode?: 'single' | 'multi';
   payloadHash: string;
 }
 

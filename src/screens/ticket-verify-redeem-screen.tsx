@@ -14,6 +14,7 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
   const { verifyEnvelope, checkTicketRedeemed, redeemTicket, loading } = useProofs();
   const envelope = route.params.envelope;
   const verification = useMemo(() => verifyEnvelope(envelope), [verifyEnvelope, envelope]);
+  const isMultiUse = envelope.payload.usageMode === 'multi';
   const [redeemed, setRedeemed] = useState<{ redeemed: boolean; signature?: string }>({ redeemed: false });
   const [explorerUrl, setExplorerUrl] = useState<string | null>(null);
   const isCompact = width < 380;
@@ -44,7 +45,7 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
     }
   };
 
-  const canRedeem = verification.isValid && !redeemed.redeemed;
+  const canRedeem = verification.isValid && (isMultiUse || !redeemed.redeemed);
 
   return (
     <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
@@ -55,7 +56,10 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
         <View style={styles.badges}>
           <VerifiedBadge label={verification.signatureValid ? 'Signature OK' : 'Bad Signature'} variant={verification.signatureValid ? 'success' : 'warning'} />
           <VerifiedBadge label={verification.timeWindowValid ? 'In Window' : 'Expired'} variant={verification.timeWindowValid ? 'success' : 'warning'} />
-          <VerifiedBadge label={redeemed.redeemed ? 'REDEEMED' : 'NOT REDEEMED'} variant={redeemed.redeemed ? 'warning' : 'success'} />
+          <VerifiedBadge
+            label={isMultiUse ? 'MULTI-USE' : redeemed.redeemed ? 'REDEEMED' : 'NOT REDEEMED'}
+            variant={isMultiUse ? 'success' : redeemed.redeemed ? 'warning' : 'success'}
+          />
         </View>
 
         <View style={styles.card}>
@@ -83,6 +87,8 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
               <Text style={styles.value}>{envelope.payload.recipientWallet}</Text>
             </>
           ) : null}
+          <Text style={styles.label}>Usage Mode</Text>
+          <Text style={styles.value}>{isMultiUse ? 'Multi-use' : 'Single-use'}</Text>
           {redeemed.signature ? (
             <>
               <Text style={styles.label}>Redemption Tx</Text>

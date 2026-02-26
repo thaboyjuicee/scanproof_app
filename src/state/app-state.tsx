@@ -54,6 +54,7 @@ interface AppStateContextValue {
     validFrom: string;
     validTo: string;
     recipientWallet?: string;
+    usageMode?: 'single' | 'multi';
   }) => Promise<ProofEnvelope<'ticket'> | null>;
   issueNotarizeEnvelope: (proof: Proof) => Promise<ProofEnvelope<'notarize'> | null>;
   encodeEnvelopeToQr: (envelope: AnyProofEnvelope) => string;
@@ -301,6 +302,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     validFrom: string;
     validTo: string;
     recipientWallet?: string;
+    usageMode?: 'single' | 'multi';
   }): Promise<ProofEnvelope<'ticket'> | null> => {
     if (!walletSession) {
       setError('Connect wallet before issuing a ticket QR.');
@@ -319,6 +321,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
         validFrom: input.validFrom,
         validTo: input.validTo,
         recipientWallet: input.recipientWallet?.trim() || undefined,
+        usageMode: input.usageMode === 'multi' ? 'multi' : 'single',
       };
 
       const payloadHash = services.ticketService.buildPayloadHash(unsignedPayload);
@@ -533,7 +536,8 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     }
 
     const redeemed = await checkTicketRedeemed(envelope);
-    if (redeemed.redeemed) {
+    const isSingleUse = envelope.payload.usageMode !== 'multi';
+    if (isSingleUse && redeemed.redeemed) {
       throw new Error('Ticket already redeemed.');
     }
 
