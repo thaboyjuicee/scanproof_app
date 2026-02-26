@@ -9,6 +9,7 @@ interface CreateProofInput {
   proofType: ProofType;
   fileUrl?: string;
   fileName?: string;
+  fileHash?: string;
   signedPayload?: SignedPayload;
 }
 
@@ -38,6 +39,7 @@ export class ProofService {
       proofType: input.proofType,
       fileUrl: input.fileUrl,
       fileName: input.fileName,
+      fileHash: input.fileHash,
       signedMessage: input.signedPayload?.message,
       signature: input.signedPayload?.signatureBase58,
     };

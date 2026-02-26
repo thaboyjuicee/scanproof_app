@@ -44,6 +44,12 @@ const assignIfNonEmptyString = (target: Record<string, unknown>, key: string, va
   }
 };
 
+const assignIfString = (target: Record<string, unknown>, key: string, value: unknown): void => {
+  if (typeof value === 'string') {
+    target[key] = value;
+  }
+};
+
 export class EnvelopeService {
   createUnsignedEnvelope<T extends ProofEnvelopeType>(input: {
     type: T;
@@ -60,7 +66,7 @@ export class EnvelopeService {
       id: input.id.trim(),
       issuedAt,
       issuerPublicKey: input.issuerPublicKey.trim(),
-      payload: input.payload,
+      payload: this.normalizePayloadForSigning(input.type, input.payload),
     };
   }
 
@@ -114,7 +120,7 @@ export class EnvelopeService {
       i: envelope.id,
       a: envelope.issuedAt,
       k: envelope.issuerPublicKey,
-      p: this.toCompactPayload(envelope.type, envelope.payload as Record<string, unknown>),
+      p: this.toCompactPayload(envelope.type, envelope.payload as unknown as Record<string, unknown>),
       s: envelope.issuerSignature,
     };
   }
@@ -130,7 +136,7 @@ export class EnvelopeService {
       issuerPublicKey: compact.k,
       payload: this.fromCompactPayload(type, compact.p),
       issuerSignature: compact.s,
-    } as AnyProofEnvelope;
+    } as unknown as AnyProofEnvelope;
   }
 
   private isCompactEnvelope(value: unknown): value is CompactEnvelope {
@@ -193,6 +199,7 @@ export class EnvelopeService {
         ts: payload.timestampIso,
       };
       assignIfNonEmptyString(compact, 'fn', payload.fileName);
+      assignIfNonEmptyString(compact, 'fh', payload.fileHash);
       assignIfNonEmptyString(compact, 'ic', payload.ipfsCid);
       return compact;
     }
@@ -218,11 +225,11 @@ export class EnvelopeService {
         validFrom: payload.vf,
         validTo: payload.vt,
       };
-      assignIfNonEmptyString(expanded, 'description', payload.de);
-      assignIfNonEmptyString(expanded, 'label', payload.la);
-      assignIfNonEmptyString(expanded, 'location', payload.lo);
-      assignIfNonEmptyString(expanded, 'community', payload.co);
-      assignIfNonEmptyString(expanded, 'badgeImage', payload.bi);
+      assignIfString(expanded, 'description', payload.de);
+      assignIfString(expanded, 'label', payload.la);
+      assignIfString(expanded, 'location', payload.lo);
+      assignIfString(expanded, 'community', payload.co);
+      assignIfString(expanded, 'badgeImage', payload.bi);
       return expanded;
     }
 
@@ -235,8 +242,9 @@ export class EnvelopeService {
         hash: payload.ha,
         timestampIso: payload.ts,
       };
-      assignIfNonEmptyString(expanded, 'fileName', payload.fn);
-      assignIfNonEmptyString(expanded, 'ipfsCid', payload.ic);
+      assignIfString(expanded, 'fileName', payload.fn);
+      assignIfString(expanded, 'fileHash', payload.fh);
+      assignIfString(expanded, 'ipfsCid', payload.ic);
       return expanded;
     }
 
@@ -248,13 +256,15 @@ export class EnvelopeService {
       validTo: payload.vt,
       payloadHash: payload.ph,
     };
-    assignIfNonEmptyString(expanded, 'venue', payload.ve);
-    assignIfNonEmptyString(expanded, 'recipientWallet', payload.rw);
+    assignIfString(expanded, 'venue', payload.ve);
+    assignIfString(expanded, 'recipientWallet', payload.rw);
     return expanded;
   }
 
   verifyEnvelopeSignature(envelope: AnyProofEnvelope): boolean {
     try {
+      const signature = bs58.decode(envelope.issuerSignature);
+      const issuerPublicKey = bs58.decode(envelope.issuerPublicKey);
       const unsignedEnvelope = {
         version: envelope.version,
         type: envelope.type,
@@ -264,15 +274,79 @@ export class EnvelopeService {
         payload: envelope.payload,
       };
 
-      const message = this.getCanonicalSigningMessage(unsignedEnvelope);
-      return nacl.sign.detached.verify(
-        utf8Encode(message),
-        bs58.decode(envelope.issuerSignature),
-        bs58.decode(envelope.issuerPublicKey)
-      );
+      const message = this.getCanonicalSigningMessage(unsignedEnvelope as any);
+      if (nacl.sign.detached.verify(utf8Encode(message), signature, issuerPublicKey)) {
+        return true;
+      }
+
+      const legacyCandidates = this.getLegacyPayloadCandidates(envelope.type, envelope.payload as unknown as Record<string, unknown>);
+      for (const payloadCandidate of legacyCandidates) {
+        const legacyMessage = this.getCanonicalSigningMessage({
+          ...unsignedEnvelope,
+          payload: payloadCandidate,
+        } as any);
+
+        if (nacl.sign.detached.verify(utf8Encode(legacyMessage), signature, issuerPublicKey)) {
+          return true;
+        }
+      }
+
+      return false;
     } catch {
       return false;
     }
+  }
+
+  private normalizePayloadForSigning<T extends ProofEnvelopeType>(
+    type: T,
+    payload: ProofEnvelopePayloadByType[T]
+  ): ProofEnvelopePayloadByType[T] {
+    const normalized = { ...(payload as unknown as Record<string, unknown>) };
+    const optionalKeys = this.getOptionalPayloadKeys(type);
+
+    for (const key of optionalKeys) {
+      if (normalized[key] === '' || normalized[key] === undefined || normalized[key] === null) {
+        delete normalized[key];
+      }
+    }
+
+    return normalized as unknown as ProofEnvelopePayloadByType[T];
+  }
+
+  private getLegacyPayloadCandidates(type: ProofEnvelopeType, payload: Record<string, unknown>): Record<string, unknown>[] {
+    const optionalKeys = this.getOptionalPayloadKeys(type);
+    const missingOptionalKeys = optionalKeys.filter((key) => !(key in payload));
+    if (missingOptionalKeys.length === 0) {
+      return [];
+    }
+
+    const legacyValues: Array<'' | undefined | null> = ['', undefined, null];
+    let frontier: Record<string, unknown>[] = [{ ...payload }];
+
+    for (const key of missingOptionalKeys) {
+      const nextFrontier: Record<string, unknown>[] = [...frontier];
+      for (const base of frontier) {
+        for (const legacyValue of legacyValues) {
+          const candidate = { ...base, [key]: legacyValue };
+          nextFrontier.push(candidate);
+        }
+      }
+      frontier = nextFrontier;
+    }
+
+    return frontier.filter((candidate) => {
+      return missingOptionalKeys.some((key) => key in candidate);
+    });
+  }
+
+  private getOptionalPayloadKeys(type: ProofEnvelopeType): string[] {
+    if (type === 'quest') {
+      return ['description', 'label', 'location', 'community', 'badgeImage'];
+    }
+    if (type === 'notarize') {
+      return ['fileName', 'fileHash', 'ipfsCid'];
+    }
+    return ['description', 'venue', 'recipientWallet'];
   }
 
   assertValidEnvelope(value: unknown): asserts value is AnyProofEnvelope {
@@ -328,6 +402,9 @@ export class EnvelopeService {
     ensureString(payload.title, 'notarize title');
     ensureString(payload.ownerWallet, 'notarize owner wallet');
     ensureString(payload.hash, 'notarize hash');
+    if (payload.fileHash !== undefined && payload.fileHash !== null) {
+      ensureString(payload.fileHash, 'notarize file hash');
+    }
     if (!isIsoDateString(payload.timestampIso)) {
       throw new AppError('Notarize timestamp is invalid.', 'ENVELOPE_VALIDATION_ERROR');
     }

@@ -9,6 +9,7 @@ import { WalletSession } from '../models/wallet-session';
 import { services } from '../services';
 import { logger } from '../utils/logger';
 import { withTimeout } from '../utils/timeout';
+import { hashFileFromUri } from '../utils/hash';
 
 const createId = (prefix: string): string => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -170,14 +171,16 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     try {
       let fileUrl: string | undefined;
       let fileName: string | undefined;
+      let fileHash: string | undefined;
 
       // Upload file if provided
       if (fileUri) {
         const urlParts = fileUri.split('/');
         fileName = urlParts[urlParts.length - 1];
+        fileHash = await hashFileFromUri(fileUri);
         const uploadResponse = await services.fileUploadService.uploadFile(fileUri, fileName);
         fileUrl = uploadResponse.url;
-        logger.info('File uploaded', { fileName, fileUrl });
+        logger.info('File uploaded', { fileName, fileUrl, fileHash });
       }
 
       const signedPayload = await withTimeout(
@@ -193,6 +196,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
         proofType,
         fileUrl,
         fileName,
+        fileHash,
         signedPayload,
       });
 
@@ -369,6 +373,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
         timestampIso: proof.timestampIso,
         fileName: proof.fileName,
         ipfsCid: proof.ipfsCid,
+        fileHash: proof.fileHash,
       };
 
       const unsignedEnvelope = services.envelopeService.createUnsignedEnvelope({

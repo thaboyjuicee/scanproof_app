@@ -1,4 +1,5 @@
 import { sha256 } from 'js-sha256';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { canonicalJsonStringify } from './canonical-json';
 
@@ -19,4 +20,20 @@ export const hashProofInput = (input: HashableProofInput): string => {
 
   const canonical = canonicalJsonStringify(normalized);
   return sha256(canonical);
+};
+
+export const hashFileFromUri = async (fileUri: string): Promise<string> => {
+  if (!fileUri || typeof fileUri !== 'string') {
+    throw new Error('Invalid file URI for hashing.');
+  }
+
+  const contentBase64 = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  if (!contentBase64) {
+    throw new Error('Selected file could not be read for hashing.');
+  }
+
+  return sha256(contentBase64);
 };

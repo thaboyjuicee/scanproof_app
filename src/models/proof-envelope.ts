@@ -22,6 +22,7 @@ export interface NotarizeEnvelopePayload {
   hash: string;
   timestampIso: string;
   fileName?: string;
+  fileHash?: string;
   ipfsCid?: string;
 }
 

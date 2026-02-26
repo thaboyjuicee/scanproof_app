@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -24,6 +25,21 @@ export const CreateProofScreen = (): React.JSX.Element => {
 
   const pickFile = async (): Promise<void> => {
     try {
+      if (proofType === 'document') {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
+          copyToCacheDirectory: true,
+          multiple: false,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          setFileName(asset.name || asset.uri.split('/').pop() || 'document');
+          setFileUri(asset.uri);
+        }
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         aspect: [4, 3],
@@ -35,7 +51,6 @@ export const CreateProofScreen = (): React.JSX.Element => {
         const name = uri.split('/').pop() || 'file';
         setFileName(name);
         setFileUri(uri);
-        setProofType(uri.includes('pdf') ? 'document' : 'photo');
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to pick file');

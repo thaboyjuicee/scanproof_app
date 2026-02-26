@@ -10,6 +10,7 @@ export interface Proof {
   proofType: ProofType;
   fileUrl?: string;
   fileName?: string;
+  fileHash?: string;
   ipfsCid?: string;
   qrCode?: string;
   signedMessage?: string;

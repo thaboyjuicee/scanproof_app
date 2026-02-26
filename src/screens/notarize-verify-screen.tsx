@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { GradientText, VerifiedBadge } from '../components';
 import { useProofs } from '../hooks/use-proofs';
 import { RootStackParamList } from '../types/navigation';
+import { hashFileFromUri } from '../utils/hash';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NotarizeVerify'>;
 
@@ -13,6 +15,48 @@ export const NotarizeVerifyScreen = ({ route }: Props): React.JSX.Element => {
   const { verifyEnvelope } = useProofs();
   const envelope = route.params.envelope;
   const verification = useMemo(() => verifyEnvelope(envelope), [verifyEnvelope, envelope]);
+  const [isComparing, setIsComparing] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [fileMatch, setFileMatch] = useState<boolean | null>(null);
+  const [fileCompareMessage, setFileCompareMessage] = useState<string | null>(null);
+
+  const handleCompareFile = async (): Promise<void> => {
+    if (!envelope.payload.fileHash) {
+      setFileMatch(null);
+      setFileCompareMessage('This notarized proof does not include a file hash, so file comparison is unavailable.');
+      return;
+    }
+
+    try {
+      setIsComparing(true);
+      setFileCompareMessage(null);
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const selected = result.assets[0];
+      const computedHash = await hashFileFromUri(selected.uri);
+      const matches = computedHash === envelope.payload.fileHash;
+
+      setSelectedFileName(selected.name || selected.uri.split('/').pop() || 'selected-file');
+      setFileMatch(matches);
+      setFileCompareMessage(matches
+        ? 'Uploaded file matches the notarized file hash.'
+        : 'Uploaded file does not match the notarized file hash.');
+    } catch {
+      setFileMatch(null);
+      setFileCompareMessage('Unable to compare file. Please try another file.');
+    } finally {
+      setIsComparing(false);
+    }
+  };
 
   return (
     <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
@@ -23,6 +67,9 @@ export const NotarizeVerifyScreen = ({ route }: Props): React.JSX.Element => {
         <View style={styles.badges}>
           <VerifiedBadge label={verification.signatureValid ? 'Signature OK' : 'Bad Signature'} variant={verification.signatureValid ? 'success' : 'warning'} />
           <VerifiedBadge label={verification.timeWindowValid ? 'Valid' : 'Expired'} variant={verification.timeWindowValid ? 'success' : 'warning'} />
+          {fileMatch !== null ? (
+            <VerifiedBadge label={fileMatch ? 'File Match' : 'File Mismatch'} variant={fileMatch ? 'success' : 'warning'} />
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -32,8 +79,28 @@ export const NotarizeVerifyScreen = ({ route }: Props): React.JSX.Element => {
           <Text style={styles.value}>{envelope.payload.ownerWallet}</Text>
           <Text style={styles.label}>Hash</Text>
           <Text style={styles.valueMono}>{envelope.payload.hash}</Text>
+          {envelope.payload.fileHash ? (
+            <>
+              <Text style={styles.label}>File Hash</Text>
+              <Text style={styles.valueMono}>{envelope.payload.fileHash}</Text>
+            </>
+          ) : null}
           <Text style={styles.label}>Created</Text>
           <Text style={styles.value}>{new Date(envelope.payload.timestampIso).toLocaleString()}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Compare Local File</Text>
+          <Text style={styles.value}>Upload a file to verify it matches the notarized creator file.</Text>
+          <TouchableOpacity style={styles.compareButton} onPress={() => void handleCompareFile()} disabled={isComparing}>
+            {isComparing ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.compareButtonText}>Upload & Compare File</Text>}
+          </TouchableOpacity>
+          {selectedFileName ? <Text style={styles.fileName}>Selected: {selectedFileName}</Text> : null}
+          {fileCompareMessage ? (
+            <Text style={[styles.compareMessage, fileMatch === false ? styles.compareMessageFail : styles.compareMessagePass]}>
+              {fileCompareMessage}
+            </Text>
+          ) : null}
         </View>
 
         {verification.reasons.length > 0 ? (
@@ -65,6 +132,34 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase' },
   value: { fontSize: 14, color: '#1f2937' },
   valueMono: { fontSize: 13, color: '#7c3aed', fontFamily: 'monospace' },
+  compareButton: {
+    marginTop: 8,
+    backgroundColor: '#7c3aed',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  compareButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  fileName: {
+    marginTop: 8,
+    color: '#374151',
+    fontSize: 12,
+  },
+  compareMessage: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  compareMessagePass: {
+    color: '#166534',
+  },
+  compareMessageFail: {
+    color: '#991b1b',
+  },
   errorCard: {
     backgroundColor: '#fef2f2',
     borderRadius: 12,
