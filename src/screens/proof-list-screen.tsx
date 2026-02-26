@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, FlatList, Image, Linking, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -76,6 +77,8 @@ const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
 
 export const ProofListScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
+  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { walletSession, connectWallet } = useWallet();
   const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
@@ -360,7 +363,7 @@ export const ProofListScreen = (): React.JSX.Element => {
 
   if (!walletSession) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.disconnectedWrap}>
           <View style={styles.disconnectedCard}>
             <LinearGradient colors={['#9333ea', '#2563eb']} style={styles.disconnectedIcon}>
@@ -376,14 +379,22 @@ export const ProofListScreen = (): React.JSX.Element => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <FlatList
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
-        contentContainerStyle={[styles.listContent, { maxWidth: 920, alignSelf: 'center', width: '100%' }]}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            maxWidth: 920,
+            alignSelf: 'center',
+            width: '100%',
+            paddingBottom: tabBarHeight + 12,
+          },
+        ]}
         ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
         showsVerticalScrollIndicator={false}
       />
@@ -404,7 +415,11 @@ export const ProofListScreen = (): React.JSX.Element => {
 
       <Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <ScrollView
+            style={styles.modalCard}
+            contentContainerStyle={[styles.modalCardContent, { paddingBottom: Math.max(16, insets.bottom + 12) }]}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Proof Details</Text>
               <TouchableOpacity onPress={() => setSelectedItem(null)}>
@@ -477,7 +492,7 @@ export const ProofListScreen = (): React.JSX.Element => {
             </View>
 
             <GradientButton title="Close" onPress={() => setSelectedItem(null)} icon="x" variant="secondary" />
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -491,7 +506,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 32,
   },
   headerWrap: {
     marginBottom: 16,
@@ -695,9 +709,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
+    maxHeight: '88%',
+  },
+  modalCardContent: {
     padding: 16,
     gap: 10,
-    maxHeight: '88%',
   },
   modalHeader: {
     flexDirection: 'row',
