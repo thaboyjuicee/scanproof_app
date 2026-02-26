@@ -1,5 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 
 import { useWallet } from '../hooks/use-wallet';
 
@@ -7,6 +9,7 @@ export const WalletConnectScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
   const { walletSession, connectWallet, disconnectWallet, loading, error, clearError } = useWallet();
   const isCompact = width < 380;
+  const loadingLabel = loading ? (walletSession ? 'Disconnecting...' : 'Connecting...') : walletSession ? 'Disconnect Wallet' : 'Connect Wallet';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -59,13 +62,33 @@ export const WalletConnectScreen = (): React.JSX.Element => {
 
       {/* Action Button */}
       <TouchableOpacity
-        style={[styles.actionButton, walletSession ? styles.actionDisconnect : styles.actionConnect]}
+        style={styles.actionButtonTouch}
         onPress={() => void (walletSession ? disconnectWallet() : connectWallet())}
         disabled={loading}
+        activeOpacity={0.85}
       >
-        <Text style={styles.actionButtonText}>
-          {loading ? 'Connecting...' : walletSession ? '🔓 Disconnect Wallet' : '🔐 Connect + Sign In'}
-        </Text>
+        {walletSession ? (
+          <View style={[styles.actionButtonSurface, styles.actionDisconnect]}>
+            <Feather name="log-out" size={18} color="#b91c1c" />
+            <View style={styles.actionTextWrap}>
+              <Text style={[styles.actionButtonText, styles.actionDisconnectText]}>{loadingLabel}</Text>
+              <Text style={[styles.actionButtonSubText, styles.actionDisconnectSubText]}>End current wallet session</Text>
+            </View>
+          </View>
+        ) : (
+          <LinearGradient
+            colors={['#9333ea', '#2563eb']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.actionButtonSurface}
+          >
+            <Feather name="link-2" size={18} color="#ffffff" />
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionButtonText}>{loadingLabel}</Text>
+              <Text style={styles.actionButtonSubText}>Sign in with your Solana wallet</Text>
+            </View>
+          </LinearGradient>
+        )}
       </TouchableOpacity>
 
       {/* Info */}
@@ -215,26 +238,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  actionButton: {
-    paddingVertical: 14,
-    borderRadius: 10,
+  actionButtonTouch: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionButtonSurface: {
+    minHeight: 60,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
     elevation: 3,
   },
-  actionConnect: {
-    backgroundColor: '#5865f2',
-  },
   actionDisconnect: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  actionTextWrap: {
+    flex: 1,
+    gap: 2,
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+  },
+  actionButtonSubText: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  actionDisconnectText: {
+    color: '#b91c1c',
+  },
+  actionDisconnectSubText: {
+    color: '#7f1d1d',
   },
   infoBox: {
     backgroundColor: '#f0f3ff',
