@@ -23,7 +23,9 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
@@ -62,7 +64,10 @@
       "SOLANA_RPC_URL": "https://api.devnet.solana.com",
       "IPFS_UPLOAD_URL": "https://api.pinata.cloud/pinning/pinJSONToIPFS",
       "IPFS_GATEWAY_URL": "https://gateway.pinata.cloud/ipfs",
-      "PINATA_JWT": ""
+      "PINATA_JWT": "",
+      "eas": {
+        "projectId": "d6975aff-44f0-4f64-a176-b40b47ab6ca5"
+      }
     }
   }
 }

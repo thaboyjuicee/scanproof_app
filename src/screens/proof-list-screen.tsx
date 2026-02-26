@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, FlatList, Image, Linking, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -14,8 +15,8 @@ import { useProofs } from '../hooks/use-proofs';
 import { useWallet } from '../hooks/use-wallet';
 import { BrandedQrCard, CardContainer, GradientButton, LoadingSkeleton } from '../components';
 
-type ProofbookFilter = 'all' | 'quest' | 'notarize' | 'ticket';
-type ProofbookType = 'quest' | 'notarize' | 'ticket' | 'legacy';
+type ProofbookFilter = 'all' | 'quest' | 'notarize' | 'ticket' | 'event';
+type ProofbookType = 'quest' | 'notarize' | 'ticket' | 'event' | 'legacy';
 
 interface ProofbookItem {
   id: string;
@@ -39,6 +40,7 @@ const TYPE_CONFIG = {
   quest:    { color: '#7C3AED', lightBg: '#F5F3FF', borderColor: '#DDD6FE', label: 'Quest' },
   notarize: { color: '#2563EB', lightBg: '#EFF6FF', borderColor: '#BFDBFE', label: 'Notarized' },
   ticket:   { color: '#059669', lightBg: '#ECFDF5', borderColor: '#A7F3D0', label: 'Ticket' },
+  event:    { color: '#059669', lightBg: '#ECFDF5', borderColor: '#A7F3D0', label: 'Ticket' },
   legacy:   { color: '#6B7280', lightBg: '#F9FAFB', borderColor: '#E5E7EB', label: 'Proof' },
 } as const;
 
@@ -76,6 +78,8 @@ const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
 
 export const ProofListScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
+  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { walletSession, connectWallet } = useWallet();
   const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
@@ -101,12 +105,16 @@ export const ProofListScreen = (): React.JSX.Element => {
         ? payload?.title ?? 'Quest'
         : item.type === 'ticket'
           ? payload?.title ?? payload?.eventName ?? 'Ticket'
+          : item.type === 'event'
+            ? payload?.eventName ?? 'Ticket'
           : payload?.title ?? 'Notarized File';
 
       const description = item.type === 'quest'
         ? payload?.label ?? 'Quest check-in'
         : item.type === 'ticket'
           ? payload?.description ?? payload?.eventName ?? payload?.venue ?? 'Admission ticket'
+          : item.type === 'event'
+            ? payload?.description ?? payload?.venue ?? 'Ticket claim portal'
           : payload?.description ?? 'Notarized file';
 
       return {
@@ -117,9 +125,9 @@ export const ProofListScreen = (): React.JSX.Element => {
         createdAt: item.issuedAt,
         community: item.type === 'quest' ? payload?.community : undefined,
         location: item.type === 'quest' ? payload?.location : undefined,
-        eventName: item.type === 'ticket' ? payload?.eventName : undefined,
-        venue: item.type === 'ticket' ? payload?.venue : undefined,
-        validTo: item.type === 'ticket' ? payload?.validTo : undefined,
+        eventName: item.type === 'ticket' || item.type === 'event' ? payload?.eventName : undefined,
+        venue: item.type === 'ticket' || item.type === 'event' ? payload?.venue : undefined,
+        validTo: item.type === 'ticket' || item.type === 'event' ? payload?.validTo : undefined,
         recipientWallet: item.type === 'ticket' ? payload?.recipientWallet : undefined,
         qrValue: encodeEnvelopeToQr(item),
         badgeImageUrl: getBadgeImageUrl(item),
@@ -147,6 +155,10 @@ export const ProofListScreen = (): React.JSX.Element => {
       return proofItems;
     }
 
+    if (activeFilter === 'ticket') {
+      return proofItems.filter((item) => item.type === 'ticket' || item.type === 'event');
+    }
+
     return proofItems.filter((item) => item.type === activeFilter);
   }, [activeFilter, proofItems]);
 
@@ -156,13 +168,13 @@ export const ProofListScreen = (): React.JSX.Element => {
         acc[item.type] += 1;
         return acc;
       },
-      { quest: 0, notarize: 0, ticket: 0, legacy: 0 }
+      { quest: 0, notarize: 0, ticket: 0, event: 0, legacy: 0 }
     );
 
     return {
       quests: countByType.quest,
       notarized: countByType.notarize,
-      tickets: countByType.ticket,
+      tickets: countByType.ticket + countByType.event,
     };
   }, [proofItems]);
 
@@ -281,7 +293,7 @@ export const ProofListScreen = (): React.JSX.Element => {
     <CardContainer style={styles.emptyCard}>
       <Feather name="book-open" size={40} color="#9ca3af" />
       <Text style={styles.emptyTitle}>No proofs yet</Text>
-      <Text style={styles.emptySubtitle}>Create your first quest, notarize a file, or issue a ticket.</Text>
+      <Text style={styles.emptySubtitle}>Create your first quest, notarize a file, or create tickets.</Text>
       <GradientButton title="Create Your First Proof" icon="plus" onPress={() => navigation.navigate('CreateTab' as never)} />
     </CardContainer>
   );
@@ -300,7 +312,7 @@ export const ProofListScreen = (): React.JSX.Element => {
 
   const renderItem = ({ item }: { item: ProofbookItem }): React.JSX.Element => {
     const config = TYPE_CONFIG[item.type];
-    const badgeLabel = item.type === 'ticket'
+    const badgeLabel = item.type === 'ticket' || item.type === 'event'
       ? item.redeemed ? 'Redeemed' : 'Ticket'
       : config.label;
 
@@ -318,7 +330,7 @@ export const ProofListScreen = (): React.JSX.Element => {
           <View style={[styles.typeBadge, { borderColor: config.borderColor, backgroundColor: config.lightBg }]}
           >
             <Text style={[styles.typeBadgeText, { color: config.color }]}>
-              {item.type === 'ticket' && item.redeemed ? '🔴 Redeemed' : `✓ ${badgeLabel}`}
+              {(item.type === 'ticket' || item.type === 'event') && item.redeemed ? '🔴 Redeemed' : `✓ ${badgeLabel}`}
             </Text>
           </View>
         </View>
@@ -376,14 +388,23 @@ export const ProofListScreen = (): React.JSX.Element => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <FlatList
         data={filteredItems}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={loading ? renderSkeleton : renderEmpty}
-        contentContainerStyle={[styles.listContent, { maxWidth: 920, alignSelf: 'center', width: '100%' }]}
+        ListFooterComponent={<View style={{ height: Math.max(8, insets.bottom) }} />}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            maxWidth: 920,
+            alignSelf: 'center',
+            width: '100%',
+            paddingBottom: tabBarHeight + 8,
+          },
+        ]}
         ItemSeparatorComponent={() => <View style={styles.cardSpacer} />}
         showsVerticalScrollIndicator={false}
       />
@@ -404,79 +425,81 @@ export const ProofListScreen = (): React.JSX.Element => {
 
       <Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Proof Details</Text>
-              <TouchableOpacity onPress={() => setSelectedItem(null)}>
-                <Feather name="x" size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
+          <View style={[styles.modalCard, { paddingBottom: Math.max(16, insets.bottom + 12) }]}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Proof Details</Text>
+                <TouchableOpacity onPress={() => setSelectedItem(null)}>
+                  <Feather name="x" size={20} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
 
-            {selectedItem?.qrValue ? (
-              <View style={styles.modalQrWrap}>
-                <BrandedQrCard
-                  value={selectedItem.qrValue}
-                  size={180}
-                  type={selectedItem.type === 'legacy' ? 'default' : selectedItem.type}
-                  title={selectedItem.type === 'legacy' ? 'Proof QR' : undefined}
-                />
-              </View>
-            ) : null}
+              {selectedItem?.qrValue ? (
+                <View style={styles.modalQrWrap}>
+                  <BrandedQrCard
+                    value={selectedItem.qrValue}
+                    size={180}
+                    type={selectedItem.type === 'legacy' ? 'default' : selectedItem.type}
+                    title={selectedItem.type === 'legacy' ? 'Proof QR' : undefined}
+                  />
+                </View>
+              ) : null}
 
-            <View style={styles.modalInfoRow}>
-              <Text style={styles.modalInfoLabel}>Title</Text>
-              <Text style={styles.modalInfoValue}>{selectedItem?.title}</Text>
-            </View>
-            <View style={styles.modalInfoRow}>
-              <Text style={styles.modalInfoLabel}>Description</Text>
-              <Text style={styles.modalInfoValue}>{selectedItem?.description}</Text>
-            </View>
-            <View style={styles.modalInfoRow}>
-              <Text style={styles.modalInfoLabel}>Type</Text>
-              <Text style={styles.modalInfoValue}>{selectedItem?.type}</Text>
-            </View>
-            {selectedItem?.type === 'quest' && selectedItem.community ? (
               <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Community</Text>
-                <Text style={styles.modalInfoValue}>{selectedItem.community}</Text>
+                <Text style={styles.modalInfoLabel}>Title</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem?.title}</Text>
               </View>
-            ) : null}
-            {selectedItem?.type === 'quest' && selectedItem.location ? (
               <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Location</Text>
-                <Text style={styles.modalInfoValue}>{selectedItem.location}</Text>
+                <Text style={styles.modalInfoLabel}>Description</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem?.description}</Text>
               </View>
-            ) : null}
-            {selectedItem?.type === 'ticket' && selectedItem.eventName ? (
               <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Event Name</Text>
-                <Text style={styles.modalInfoValue}>{selectedItem.eventName}</Text>
+                <Text style={styles.modalInfoLabel}>Type</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem?.type}</Text>
               </View>
-            ) : null}
-            {selectedItem?.type === 'ticket' && selectedItem.venue ? (
+              {selectedItem?.type === 'quest' && selectedItem.community ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Community</Text>
+                  <Text style={styles.modalInfoValue}>{selectedItem.community}</Text>
+                </View>
+              ) : null}
+              {selectedItem?.type === 'quest' && selectedItem.location ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Location</Text>
+                  <Text style={styles.modalInfoValue}>{selectedItem.location}</Text>
+                </View>
+              ) : null}
+              {selectedItem?.type === 'ticket' && selectedItem.eventName ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Event Name</Text>
+                  <Text style={styles.modalInfoValue}>{selectedItem.eventName}</Text>
+                </View>
+              ) : null}
+              {selectedItem?.type === 'ticket' && selectedItem.venue ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Venue</Text>
+                  <Text style={styles.modalInfoValue}>{selectedItem.venue}</Text>
+                </View>
+              ) : null}
+              {selectedItem?.type === 'ticket' && selectedItem.validTo ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Expiration</Text>
+                  <Text style={styles.modalInfoValue}>{formatDateTime(selectedItem.validTo)}</Text>
+                </View>
+              ) : null}
+              {selectedItem?.type === 'ticket' && selectedItem.recipientWallet ? (
+                <View style={styles.modalInfoRow}>
+                  <Text style={styles.modalInfoLabel}>Recipient Wallet</Text>
+                  <Text style={styles.modalInfoValue}>{selectedItem.recipientWallet}</Text>
+                </View>
+              ) : null}
               <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Venue</Text>
-                <Text style={styles.modalInfoValue}>{selectedItem.venue}</Text>
+                <Text style={styles.modalInfoLabel}>Created</Text>
+                <Text style={styles.modalInfoValue}>{selectedItem ? formatDate(selectedItem.createdAt) : ''}</Text>
               </View>
-            ) : null}
-            {selectedItem?.type === 'ticket' && selectedItem.validTo ? (
-              <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Expiration</Text>
-                <Text style={styles.modalInfoValue}>{formatDateTime(selectedItem.validTo)}</Text>
-              </View>
-            ) : null}
-            {selectedItem?.type === 'ticket' && selectedItem.recipientWallet ? (
-              <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>Recipient Wallet</Text>
-                <Text style={styles.modalInfoValue}>{selectedItem.recipientWallet}</Text>
-              </View>
-            ) : null}
-            <View style={styles.modalInfoRow}>
-              <Text style={styles.modalInfoLabel}>Created</Text>
-              <Text style={styles.modalInfoValue}>{selectedItem ? formatDate(selectedItem.createdAt) : ''}</Text>
-            </View>
 
-            <GradientButton title="Close" onPress={() => setSelectedItem(null)} icon="x" variant="secondary" />
+              <GradientButton title="Close" onPress={() => setSelectedItem(null)} icon="x" variant="secondary" />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -698,6 +721,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
     maxHeight: '88%',
+  },
+  modalScrollContent: {
+    gap: 10,
   },
   modalHeader: {
     flexDirection: 'row',

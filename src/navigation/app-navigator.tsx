@@ -7,6 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateTemplatePickerScreen } from '../screens/create-template-picker-screen';
 import { CreateProofScreen } from '../screens/create-proof-screen';
+import { EntryPassScreen } from '../screens/entry-pass-screen';
+import { EventClaimScreen } from '../screens/event-claim-screen';
+import { EventCreateScreen } from '../screens/event-create-screen';
+import { EventDoorVerifyRedeemScreen } from '../screens/event-door-verify-redeem-screen';
 import { HomeScreen } from '../screens/home-screen';
 import { NotarizeVerifyScreen } from '../screens/notarize-verify-screen';
 import { ProofDetailsScreen } from '../screens/proof-details-screen';
@@ -106,12 +110,22 @@ export const AppNavigator = (): React.JSX.Element => {
             headerTintColor: '#111827',
           }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="TicketCreate"
           component={TicketCreateScreen}
           options={{
             headerShown: true,
-            title: 'Redeemable Gate Pass',
+            title: 'Gate Pass Create',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen
+          name="EventCreate"
+          component={EventCreateScreen}
+          options={{
+            headerShown: true,
+            title: 'Tickets Create',
             headerStyle: { backgroundColor: '#ffffff' },
             headerTintColor: '#111827',
           }}
@@ -146,12 +160,42 @@ export const AppNavigator = (): React.JSX.Element => {
             headerTintColor: '#111827',
           }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="TicketVerifyRedeem"
           component={TicketVerifyRedeemScreen}
           options={{
             headerShown: true,
-            title: 'Ticket Verify / Redeem',
+            title: 'Gate Pass Verify / Redeem',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen
+          name="EventClaim"
+          component={EventClaimScreen}
+          options={{
+            headerShown: true,
+            title: 'Ticket Claim',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen
+          name="EntryPass"
+          component={EntryPassScreen}
+          options={{
+            headerShown: true,
+            title: 'Entry Pass',
+            headerStyle: { backgroundColor: '#ffffff' },
+            headerTintColor: '#111827',
+          }}
+        />
+        <Stack.Screen
+          name="EventDoorVerifyRedeem"
+          component={EventDoorVerifyRedeemScreen}
+          options={{
+            headerShown: true,
+            title: 'Door Verify / Redeem',
             headerStyle: { backgroundColor: '#ffffff' },
             headerTintColor: '#111827',
           }}

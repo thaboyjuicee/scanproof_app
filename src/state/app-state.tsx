@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { env } from '../config/env';
-import { AnyProofEnvelope, NotarizeEnvelopePayload, ProofEnvelope, QuestClaimLimit, QuestEnvelopePayload, TicketEnvelopePayload } from '../models/proof-envelope';
+import { EntryPass } from '../models/entry-pass';
+import { AnyProofEnvelope, EventEnvelopePayload, NotarizeEnvelopePayload, ProofEnvelope, QuestClaimLimit, QuestEnvelopePayload, TicketEnvelopePayload } from '../models/proof-envelope';
 import { QuestClaimRecord, ScanHistoryRecord, TicketRedemptionRecord } from '../models/proofbook';
 import { Proof, ProofType } from '../models/proof';
 import { VerificationResult } from '../models/verification-result';
@@ -54,13 +55,28 @@ interface AppStateContextValue {
     validTo: string;
     recipientWallet?: string;
   }) => Promise<ProofEnvelope<'ticket'> | null>;
+  createEventEnvelope: (input: {
+    eventName: string;
+    description?: string;
+    venue?: string;
+    validFrom: string;
+    validTo: string;
+    capacity: number;
+  }) => Promise<ProofEnvelope<'event'> | null>;
   issueNotarizeEnvelope: (proof: Proof) => Promise<ProofEnvelope<'notarize'> | null>;
   encodeEnvelopeToQr: (envelope: AnyProofEnvelope) => string;
   decodeEnvelopeFromQr: (rawData: string) => AnyProofEnvelope;
+  encodeEntryPassToQr: (entryPass: EntryPass) => string;
+  decodeEntryPassFromQr: (rawData: string) => EntryPass;
   verifyEnvelope: (envelope: AnyProofEnvelope) => EnvelopeVerificationResult;
   claimQuest: (envelope: ProofEnvelope<'quest'>) => Promise<QuestClaimRecord>;
   checkTicketRedeemed: (envelope: ProofEnvelope<'ticket'>) => Promise<{ redeemed: boolean; signature?: string }>;
   redeemTicket: (envelope: ProofEnvelope<'ticket'>) => Promise<{ signature: string; explorerUrl: string }>;
+  getEventClaimStats: (envelope: ProofEnvelope<'event'>) => Promise<{ claimedCount: number; estimatedRemaining: number }>;
+  claimEventPass: (envelope: ProofEnvelope<'event'>) => Promise<{ entryPass: EntryPass; signature: string; explorerUrl: string }>;
+  verifyEntryPassClaim: (entryPass: EntryPass) => Promise<{ claimed: boolean; signature?: string }>;
+  checkEntryPassRedeemed: (entryPass: EntryPass) => Promise<{ redeemed: boolean; signature?: string }>;
+  redeemEntryPass: (entryPass: EntryPass) => Promise<{ signature: string; explorerUrl: string }>;
   addScanHistory: (entry: Omit<ScanHistoryRecord, 'id' | 'scannedAt'>) => Promise<void>;
   loadProofs: () => Promise<void>;
   clearError: () => void;
@@ -350,6 +366,58 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     }
   }, [walletSession, clearError, persistIssuedEnvelope, handleError]);
 
+  const createEventEnvelope = useCallback(async (input: {
+    eventName: string;
+    description?: string;
+    venue?: string;
+    validFrom: string;
+    validTo: string;
+    capacity: number;
+  }): Promise<ProofEnvelope<'event'> | null> => {
+    if (!walletSession) {
+      setError('Connect wallet before issuing an event portal QR.');
+      return null;
+    }
+
+    setLoading(true);
+    clearError();
+
+    try {
+      const payload: EventEnvelopePayload = {
+        eventName: input.eventName.trim(),
+        description: input.description?.trim() || undefined,
+        venue: input.venue?.trim() || undefined,
+        validFrom: input.validFrom,
+        validTo: input.validTo,
+        capacity: input.capacity,
+      };
+
+      const unsignedEnvelope = services.envelopeService.createUnsignedEnvelope({
+        type: 'event',
+        id: createId('event'),
+        issuerPublicKey: walletSession.walletAddress,
+        payload,
+      });
+
+      const message = services.envelopeService.getCanonicalSigningMessage(unsignedEnvelope);
+      const signedPayload = await withTimeout(
+        services.walletService.signMessage(message),
+        12000,
+        'WALLET_SIGN_TIMEOUT',
+        'Wallet signature request timed out.'
+      );
+
+      const signedEnvelope = services.envelopeService.signEnvelope(unsignedEnvelope, signedPayload);
+      await persistIssuedEnvelope(signedEnvelope);
+      return signedEnvelope;
+    } catch (unknownError) {
+      handleError(unknownError);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [walletSession, clearError, persistIssuedEnvelope, handleError]);
+
   const issueNotarizeEnvelope = useCallback(async (proof: Proof): Promise<ProofEnvelope<'notarize'> | null> => {
     if (!walletSession) {
       setError('Connect wallet before issuing notarize QR.');
@@ -542,20 +610,15 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
 
     const signature = await withTimeout(
       services.walletService.sendTransaction(serializedTx),
-      15000,
+      45000,
       'WALLET_TX_TIMEOUT',
-      'Wallet transaction timed out.'
+      'Wallet transaction signing timed out. Please approve in wallet and retry.'
     );
 
-    const confirmed = await withTimeout(
-      services.solanaService.isSignatureConfirmed(signature),
-      15000,
-      'RPC_TIMEOUT',
-      'Transaction confirmation check timed out.'
-    );
+    const confirmed = await services.solanaService.waitForSignatureConfirmation(signature, 45000, 2500);
 
     if (!confirmed) {
-      throw new Error('Transaction was not confirmed. Please try again.');
+      throw new Error('Transaction was submitted but confirmation is delayed on devnet. Please check explorer and retry only if it remains unconfirmed.');
     }
 
     const redemptionRecord: TicketRedemptionRecord = {
@@ -578,12 +641,165 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     };
   }, [walletSession, verifyEnvelope, checkTicketRedeemed, ticketRedemptions]);
 
+  const getEventClaimStats = useCallback(async (envelope: ProofEnvelope<'event'>): Promise<{ claimedCount: number; estimatedRemaining: number }> => {
+    let claimedCount = 0;
+    try {
+      claimedCount = await withTimeout(
+        services.eventService.countClaims(envelope.id, services.solanaService, 9000),
+        9000,
+        'RPC_TIMEOUT',
+        'Event claim stats request timed out.'
+      );
+    } catch {
+      claimedCount = 0;
+    }
+
+    const estimatedRemaining = Math.max(envelope.payload.capacity - claimedCount, 0);
+    return { claimedCount, estimatedRemaining };
+  }, []);
+
+  const claimEventPass = useCallback(async (envelope: ProofEnvelope<'event'>): Promise<{ entryPass: EntryPass; signature: string; explorerUrl: string }> => {
+    if (!walletSession) {
+      throw new Error('Connect wallet to claim event pass.');
+    }
+
+    const verification = verifyEnvelope(envelope);
+    if (!verification.isValid) {
+      throw new Error(verification.reasons[0] ?? 'Event portal is invalid.');
+    }
+
+    const memo = services.eventService.formatClaimMemo(envelope.id, walletSession.walletAddress);
+    const serializedTx = await withTimeout(
+      services.solanaService.createUnsignedMemoTransactionBase64(walletSession.walletAddress, memo),
+      12000,
+      'RPC_TIMEOUT',
+      'Failed to prepare claim transaction.'
+    );
+
+    const signature = await withTimeout(
+      services.walletService.sendTransaction(serializedTx),
+      45000,
+      'WALLET_TX_TIMEOUT',
+      'Wallet transaction signing timed out. Please approve in wallet and retry.'
+    );
+
+    const confirmed = await services.solanaService.waitForSignatureConfirmation(signature, 45000, 2500);
+
+    if (!confirmed) {
+      throw new Error('Transaction was submitted but confirmation is delayed on devnet. Please check explorer and retry only if it remains unconfirmed.');
+    }
+
+    // Sign entry pass payload
+    const issuedAt = new Date().toISOString();
+    const entryPassPayload = `${envelope.id}|${walletSession.walletAddress}|${issuedAt}`;
+    // Organizer private key should be securely loaded
+    // For demo, use env.organizerPrivateKey (base58)
+    const organizerPrivateKey = bs58.decode(env.organizerPrivateKey);
+    const signatureBytes = nacl.sign.detached(new TextEncoder().encode(entryPassPayload), organizerPrivateKey);
+    const entryPass: EntryPass = {
+      type: 'scanproof_entrypass_v1',
+      eventId: envelope.id,
+      attendeeWallet: walletSession.walletAddress,
+      issuedAt,
+      signature: bs58.encode(signatureBytes),
+    };
+
+    const clusterQuery = env.solanaCluster === 'mainnet-beta' ? '' : `?cluster=${encodeURIComponent(env.solanaCluster)}`;
+    return {
+      entryPass,
+      signature,
+      explorerUrl: `${env.solanaExplorerBaseUrl}/tx/${signature}${clusterQuery}`,
+    };
+  }, [walletSession, verifyEnvelope]);
+
+  const verifyEntryPassClaim = useCallback(async (entryPass: EntryPass): Promise<{ claimed: boolean; signature?: string }> => {
+    if (!entryPass.eventId || !entryPass.attendeeWallet) {
+      throw new Error('Entry pass is invalid.');
+    }
+
+    return withTimeout(
+      services.eventService.isClaimed(entryPass.eventId, entryPass.attendeeWallet, services.solanaService, 12000),
+      12000,
+      'RPC_TIMEOUT',
+      'Claim verification timed out.'
+    );
+  }, []);
+
+  const checkEntryPassRedeemed = useCallback(async (entryPass: EntryPass): Promise<{ redeemed: boolean; signature?: string }> => {
+    if (!entryPass.eventId || !entryPass.attendeeWallet) {
+      throw new Error('Entry pass is invalid.');
+    }
+
+    return withTimeout(
+      services.eventService.isRedeemed(entryPass.eventId, entryPass.attendeeWallet, services.solanaService, 12000),
+      12000,
+      'RPC_TIMEOUT',
+      'Redeem verification timed out.'
+    );
+  }, []);
+
+  const redeemEntryPass = useCallback(async (entryPass: EntryPass): Promise<{ signature: string; explorerUrl: string }> => {
+    if (!walletSession) {
+      throw new Error('Connect wallet to redeem entry pass.');
+    }
+
+    if (!entryPass.eventId || !entryPass.attendeeWallet) {
+      throw new Error('Entry pass is invalid.');
+    }
+
+    const claim = await verifyEntryPassClaim(entryPass);
+    if (!claim.claimed) {
+      throw new Error('CLAIM NOT FOUND');
+    }
+
+    const redeemed = await checkEntryPassRedeemed(entryPass);
+
+    if (redeemed.redeemed) {
+      throw new Error('REDEEMED');
+    }
+
+    const memo = services.eventService.formatRedeemMemo(entryPass.eventId, entryPass.attendeeWallet);
+    const serializedTx = await withTimeout(
+      services.solanaService.createUnsignedMemoTransactionBase64(walletSession.walletAddress, memo),
+      12000,
+      'RPC_TIMEOUT',
+      'Failed to prepare redeem transaction.'
+    );
+
+    const signature = await withTimeout(
+      services.walletService.sendTransaction(serializedTx),
+      45000,
+      'WALLET_TX_TIMEOUT',
+      'Wallet transaction signing timed out. Please approve in wallet and retry.'
+    );
+
+    const confirmed = await services.solanaService.waitForSignatureConfirmation(signature, 45000, 2500);
+
+    if (!confirmed) {
+      throw new Error('Transaction was submitted but confirmation is delayed on devnet. Please check explorer and retry only if it remains unconfirmed.');
+    }
+
+    const clusterQuery = env.solanaCluster === 'mainnet-beta' ? '' : `?cluster=${encodeURIComponent(env.solanaCluster)}`;
+    return {
+      signature,
+      explorerUrl: `${env.solanaExplorerBaseUrl}/tx/${signature}${clusterQuery}`,
+    };
+  }, [walletSession, verifyEntryPassClaim, checkEntryPassRedeemed]);
+
   const decodeEnvelopeFromQr = useCallback((rawData: string): AnyProofEnvelope => {
     return services.envelopeService.decodeFromBase64Url(rawData);
   }, []);
 
   const encodeEnvelopeToQr = useCallback((envelope: AnyProofEnvelope): string => {
     return services.envelopeService.encodeToBase64Url(envelope);
+  }, []);
+
+  const decodeEntryPassFromQr = useCallback((rawData: string): EntryPass => {
+    return services.entryPassService.decodeEntryPassFromQr(rawData);
+  }, []);
+
+  const encodeEntryPassToQr = useCallback((entryPass: EntryPass): string => {
+    return services.entryPassService.encodeEntryPassToQr(entryPass);
   }, []);
 
   const addScanHistory = useCallback(async (entry: Omit<ScanHistoryRecord, 'id' | 'scannedAt'>): Promise<void> => {
@@ -629,13 +845,21 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     verifyMultipleProofs,
     createQuestEnvelope,
     createTicketEnvelope,
+    createEventEnvelope,
     issueNotarizeEnvelope,
     encodeEnvelopeToQr,
     decodeEnvelopeFromQr,
+    encodeEntryPassToQr,
+    decodeEntryPassFromQr,
     verifyEnvelope,
     claimQuest,
     checkTicketRedeemed,
     redeemTicket,
+    getEventClaimStats,
+    claimEventPass,
+    verifyEntryPassClaim,
+    checkEntryPassRedeemed,
+    redeemEntryPass,
     addScanHistory,
     loadProofs,
     clearError,
@@ -656,13 +880,21 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     verifyMultipleProofs,
     createQuestEnvelope,
     createTicketEnvelope,
+    createEventEnvelope,
     issueNotarizeEnvelope,
     encodeEnvelopeToQr,
     decodeEnvelopeFromQr,
+    encodeEntryPassToQr,
+    decodeEntryPassFromQr,
     verifyEnvelope,
     claimQuest,
     checkTicketRedeemed,
     redeemTicket,
+    getEventClaimStats,
+    claimEventPass,
+    verifyEntryPassClaim,
+    checkEntryPassRedeemed,
+    redeemEntryPass,
     addScanHistory,
     loadProofs,
     clearError,

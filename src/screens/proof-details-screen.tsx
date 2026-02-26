@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { QRModal } from '../components/qr-modal';
 import { useProofs } from '../hooks/use-proofs';
@@ -15,6 +16,9 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
   const { proof } = route.params;
   const { issuedEnvelopes, encodeEnvelopeToQr } = useProofs();
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isCompact = width < 380;
 
   const notarizeEnvelope = issuedEnvelopes.find((entry) => entry.type === 'notarize' && entry.id === proof.id);
   const standardizedQrValue = notarizeEnvelope ? encodeEnvelopeToQr(notarizeEnvelope) : undefined;
@@ -32,10 +36,15 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
 
   return (
     <>
-      <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+        <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
+          <ScrollView contentContainerStyle={[
+            styles.container,
+            isCompact && styles.containerCompact,
+            { paddingBottom: Math.max(88, insets.bottom + 48) },
+          ]}>
           <View style={styles.header}>
-            <GradientText style={styles.title}>{proof.title}</GradientText>
+            <GradientText style={[styles.title, isCompact && styles.titleCompact]}>{proof.title}</GradientText>
             <View style={styles.badgeRow}>
               <VerifiedBadge label={proof.proofType} variant="info" />
               <VerifiedBadge label="Verified" variant="success" />
@@ -104,13 +113,14 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
             </CardContainer>
           )}
 
-          <GradientButton
-            title="Show QR Code"
-            onPress={() => setQrModalVisible(true)}
-            icon="maximize"
-          />
-        </ScrollView>
-      </LinearGradient>
+            <GradientButton
+              title="Show QR Code"
+              onPress={() => setQrModalVisible(true)}
+              icon="maximize"
+            />
+          </ScrollView>
+        </LinearGradient>
+      </SafeAreaView>
 
       <QRModal
         visible={qrModalVisible}
@@ -123,6 +133,10 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#faf5ff',
+  },
   gradient: {
     flex: 1,
   },
@@ -130,6 +144,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     gap: 20,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+  },
+  containerCompact: {
+    padding: 16,
+    gap: 16,
   },
   header: {
     gap: 12,
@@ -139,9 +160,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
   },
+  titleCompact: {
+    fontSize: 24,
+  },
   badgeRow: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   section: {
     gap: 16,
@@ -185,5 +210,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#faf5ff',
     padding: 8,
     borderRadius: 6,
+    flexShrink: 1,
+    width: '100%',
   },
 });

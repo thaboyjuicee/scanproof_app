@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
 import { FileText, QrCode, Ticket, Users } from 'lucide-react-native';
 
-type QrCardType = 'quest' | 'ticket' | 'notarize' | 'default';
+type QrCardType = 'quest' | 'ticket' | 'event' | 'notarize' | 'default';
 
 interface BrandedQrCardProps {
   value: string;
@@ -17,6 +17,7 @@ interface BrandedQrCardProps {
 const STYLE_BY_TYPE: Record<QrCardType, { colors: [string, string, ...string[]]; chipColor: string; label: string; Icon: React.ComponentType<any> }> = {
   quest: { colors: ['#F58529', '#DD2A7B', '#8134AF', '#515BD4'], chipColor: '#7C3AED', label: 'Quest Proof', Icon: Users },
   ticket: { colors: ['#F58529', '#EF4444', '#059669', '#14B8A6'], chipColor: '#059669', label: 'Gate Pass', Icon: Ticket },
+  event: { colors: ['#F58529', '#EF4444', '#059669', '#14B8A6'], chipColor: '#059669', label: 'Event Portal', Icon: Ticket },
   notarize: { colors: ['#F58529', '#DD2A7B', '#2563EB', '#06B6D4'], chipColor: '#2563EB', label: 'Notarized File', Icon: FileText },
   default: { colors: ['#F58529', '#DD2A7B', '#8134AF', '#515BD4'], chipColor: '#6D28D9', label: 'ScanProof', Icon: QrCode },
 };

@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BrandedQrCard } from './BrandedQrCard';
 
-type EnvelopeQrType = 'quest' | 'ticket' | 'notarize' | 'default';
+type EnvelopeQrType = 'quest' | 'ticket' | 'event' | 'notarize' | 'default';
 
 interface ProofEnvelopeModalProps {
   visible: boolean;

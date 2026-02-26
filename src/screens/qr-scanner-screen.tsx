@@ -22,7 +22,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const { decodeEnvelopeFromQr, addScanHistory } = useProofs();
+  const { decodeEnvelopeFromQr, decodeEntryPassFromQr, addScanHistory } = useProofs();
   const scanFrameSize = Math.min(300, Math.max(220, width - 72));
 
   useFocusEffect(
@@ -47,10 +47,37 @@ export const QRScannerScreen =  (): React.JSX.Element => {
         navigation.navigate('QuestClaimVerify', { envelope });
       } else if (envelope.type === 'notarize') {
         navigation.navigate('NotarizeVerify', { envelope });
-      } else {
+      } else if (envelope.type === 'ticket') {
         navigation.navigate('TicketVerifyRedeem', { envelope });
+      } else if (envelope.type === 'event') {
+        navigation.navigate('EventClaim', { envelope });
+      } else {
+        Alert.alert('Unsupported QR', 'Unsupported QR type.');
+        setScanned(false);
+        setProcessing(false);
       }
     } catch (err) {
+      try {
+        if (data.startsWith('scanproof:entrypass:')) {
+          const entryPass = decodeEntryPassFromQr(data);
+          void addScanHistory({
+            envelopeId: entryPass.eventId,
+            envelopeType: 'event',
+            status: 'ok',
+            message: 'Entry pass decoded successfully',
+          });
+          navigation.navigate('EventDoorVerifyRedeem', { entryPass });
+          return;
+        }
+      } catch (entryPassError) {
+        void addScanHistory({
+          envelopeId: 'unknown',
+          envelopeType: 'event',
+          status: 'error',
+          message: entryPassError instanceof Error ? entryPassError.message : 'Failed to parse entry pass QR',
+        });
+      }
+
       void addScanHistory({
         envelopeId: 'unknown',
         envelopeType: 'notarize',
@@ -97,7 +124,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
       const base64 = result.assets[0].base64;
 
       // Try to decode QR from image
-      const qrData = await decodeQRFromImageURI(imageURI, base64);
+      const qrData = await decodeQRFromImageURI(imageURI, base64 ?? undefined);
 
       if (!qrData) {
         Alert.alert(

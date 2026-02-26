@@ -43,11 +43,20 @@ export const CreateTemplatePickerScreen = (): React.JSX.Element => {
     },
     {
       key: 'ticket',
-      title: 'Redeemable Gate Pass',
-      description: 'Issue tickets that verifiers can redeem on-chain',
-      colors: ['#059669', '#14B8A6'] as const,
+      title: 'Gate Pass',
+      description: 'Redeemable tickets with on-chain redemption memo',
+      colors: ['#059669', '#10b981'] as const,
       Icon: Ticket,
       onPress: () => navigation.navigate('TicketCreate'),
+    },
+    {
+      key: 'event',
+      title: 'Tickets (Claim + Entry Pass)',
+      description: 'One event QR for claims, then single-use door redemption',
+      colors: ['#0f766e', '#14b8a6'] as const,
+      Icon: Ticket,
+      beta: true,
+      onPress: () => navigation.navigate('EventCreate'),
     },
   ];
 
@@ -63,6 +72,11 @@ export const CreateTemplatePickerScreen = (): React.JSX.Element => {
           <View style={styles.cardsWrap}>
             {templates.map((template) => (
               <TouchableOpacity key={template.key} onPress={template.onPress} activeOpacity={0.9} style={[styles.card, isCompact && styles.cardCompact]}>
+                {template.beta ? (
+                  <View style={styles.betaBadge}>
+                    <Text style={styles.betaBadgeText}>BETA</Text>
+                  </View>
+                ) : null}
                 <LinearGradient colors={template.colors} style={styles.iconWrap}>
                   <template.Icon size={20} color="#ffffff" strokeWidth={2.25} />
                 </LinearGradient>
@@ -114,6 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
+    position: 'relative',
     ...cardShadow,
   },
   cardCompact: {
@@ -137,5 +152,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     lineHeight: 18,
+  },
+  betaBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: '#ecfeff',
+    borderWidth: 1,
+    borderColor: '#99f6e4',
+  },
+  betaBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0f766e',
+    letterSpacing: 0.3,
   },
 });

@@ -3,12 +3,12 @@ import { Base64 } from 'js-base64';
 import nacl from 'tweetnacl';
 
 import { SignedPayload } from '../../models/signed-payload';
-import { AnyProofEnvelope, NotarizeEnvelopePayload, ProofEnvelope, ProofEnvelopePayloadByType, ProofEnvelopeType, QuestEnvelopePayload, TicketEnvelopePayload } from '../../models/proof-envelope';
+import { AnyProofEnvelope, EventEnvelopePayload, NotarizeEnvelopePayload, ProofEnvelope, ProofEnvelopePayloadByType, ProofEnvelopeType, QuestEnvelopePayload, TicketEnvelopePayload } from '../../models/proof-envelope';
 import { AppError } from '../../utils/errors';
 import { canonicalJsonStringify } from '../../utils/canonical-json';
 
 type PartialEnvelope<T extends ProofEnvelopeType> = Omit<ProofEnvelope<T>, 'issuerSignature'>;
-type CompactEnvelopeType = 'q' | 'n' | 't';
+type CompactEnvelopeType = 'q' | 'n' | 't' | 'e';
 
 interface CompactEnvelope {
   v: 1;
@@ -114,7 +114,7 @@ export class EnvelopeService {
       i: envelope.id,
       a: envelope.issuedAt,
       k: envelope.issuerPublicKey,
-      p: this.toCompactPayload(envelope.type, envelope.payload as Record<string, unknown>),
+      p: this.toCompactPayload(envelope.type, envelope.payload as unknown as Record<string, unknown>),
       s: envelope.issuerSignature,
     };
   }
@@ -130,7 +130,7 @@ export class EnvelopeService {
       issuerPublicKey: compact.k,
       payload: this.fromCompactPayload(type, compact.p),
       issuerSignature: compact.s,
-    } as AnyProofEnvelope;
+    } as unknown as AnyProofEnvelope;
   }
 
   private isCompactEnvelope(value: unknown): value is CompactEnvelope {
@@ -139,7 +139,7 @@ export class EnvelopeService {
     }
 
     return value.v === 1
-      && (value.t === 'q' || value.t === 'n' || value.t === 't')
+      && (value.t === 'q' || value.t === 'n' || value.t === 't' || value.t === 'e')
       && typeof value.i === 'string'
       && typeof value.a === 'string'
       && typeof value.k === 'string'
@@ -154,6 +154,9 @@ export class EnvelopeService {
     if (type === 'notarize') {
       return 'n';
     }
+    if (type === 'event') {
+      return 'e';
+    }
     return 't';
   }
 
@@ -163,6 +166,9 @@ export class EnvelopeService {
     }
     if (type === 'n') {
       return 'notarize';
+    }
+    if (type === 'e') {
+      return 'event';
     }
     return 'ticket';
   }
@@ -194,6 +200,18 @@ export class EnvelopeService {
       };
       assignIfNonEmptyString(compact, 'fn', payload.fileName);
       assignIfNonEmptyString(compact, 'ic', payload.ipfsCid);
+      return compact;
+    }
+
+    if (type === 'event') {
+      const compact: Record<string, unknown> = {
+        en: payload.eventName,
+        vf: payload.validFrom,
+        vt: payload.validTo,
+        ca: payload.capacity,
+      };
+      assignIfNonEmptyString(compact, 'de', payload.description);
+      assignIfNonEmptyString(compact, 've', payload.venue);
       return compact;
     }
 
@@ -237,6 +255,18 @@ export class EnvelopeService {
       };
       assignIfNonEmptyString(expanded, 'fileName', payload.fn);
       assignIfNonEmptyString(expanded, 'ipfsCid', payload.ic);
+      return expanded;
+    }
+
+    if (type === 'event') {
+      const expanded: Record<string, unknown> = {
+        eventName: payload.en,
+        validFrom: payload.vf,
+        validTo: payload.vt,
+        capacity: payload.ca,
+      };
+      assignIfNonEmptyString(expanded, 'description', payload.de);
+      assignIfNonEmptyString(expanded, 'venue', payload.ve);
       return expanded;
     }
 
@@ -285,7 +315,7 @@ export class EnvelopeService {
     }
 
     const type = ensureString(value.type, 'envelope type');
-    if (type !== 'quest' && type !== 'notarize' && type !== 'ticket') {
+    if (type !== 'quest' && type !== 'notarize' && type !== 'ticket' && type !== 'event') {
       throw new AppError('Unknown envelope type.', 'ENVELOPE_TYPE_UNSUPPORTED');
     }
 
@@ -306,8 +336,10 @@ export class EnvelopeService {
       this.assertQuestPayload(payload);
     } else if (type === 'notarize') {
       this.assertNotarizePayload(payload);
-    } else {
+    } else if (type === 'ticket') {
       this.assertTicketPayload(payload);
+    } else {
+      this.assertEventPayload(payload);
     }
   }
 
@@ -342,6 +374,18 @@ export class EnvelopeService {
     ensureString(payload.payloadHash, 'ticket payload hash');
     if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
       throw new AppError('Ticket validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');
+    }
+  }
+
+  private assertEventPayload(payload: Record<string, unknown>): void {
+    ensureString(payload.eventName, 'event name');
+
+    if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
+      throw new AppError('Event validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');
+    }
+
+    if (typeof payload.capacity !== 'number' || Number.isNaN(payload.capacity) || payload.capacity <= 0) {
+      throw new AppError('Event capacity must be a positive number.', 'ENVELOPE_VALIDATION_ERROR');
     }
   }
 }

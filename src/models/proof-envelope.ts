@@ -1,4 +1,4 @@
-export type ProofEnvelopeType = 'quest' | 'notarize' | 'ticket';
+export type ProofEnvelopeType = 'quest' | 'notarize' | 'ticket' | 'event';
 
 export type QuestClaimLimit = 'once' | 'daily';
 
@@ -36,10 +36,20 @@ export interface TicketEnvelopePayload {
   payloadHash: string;
 }
 
+export interface EventEnvelopePayload {
+  eventName: string;
+  description?: string;
+  venue?: string;
+  validFrom: string;
+  validTo: string;
+  capacity: number;
+}
+
 export type ProofEnvelopePayloadByType = {
   quest: QuestEnvelopePayload;
   notarize: NotarizeEnvelopePayload;
   ticket: TicketEnvelopePayload;
+  event: EventEnvelopePayload;
 };
 
 export interface ProofEnvelope<T extends ProofEnvelopeType = ProofEnvelopeType> {
@@ -55,4 +65,5 @@ export interface ProofEnvelope<T extends ProofEnvelopeType = ProofEnvelopeType> 
 export type AnyProofEnvelope =
   | ProofEnvelope<'quest'>
   | ProofEnvelope<'notarize'>
-  | ProofEnvelope<'ticket'>;
+  | ProofEnvelope<'ticket'>
+  | ProofEnvelope<'event'>;

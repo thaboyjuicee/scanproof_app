@@ -1,5 +1,7 @@
 import { env } from '../config/env';
 import { EnvelopeService } from './envelope/envelope-service';
+import { EntryPassService } from './entry-pass/entry-pass-service';
+import { EventService } from './event/event-service';
 import { FileUploadService } from './file-upload/file-upload-service';
 import { IpfsService } from './ipfs/ipfs-service';
 import { ProofService } from './proof/proof-service';
@@ -16,6 +18,8 @@ export const services = {
   storageService,
   solanaService,
   envelopeService: new EnvelopeService(),
+  entryPassService: new EntryPassService(),
+  eventService: new EventService(),
   ticketService: new TicketService(),
   ipfsService: new IpfsService(env.ipfsUploadUrl, env.ipfsGatewayUrl, env.pinataJwt),
   proofService: new ProofService(),
