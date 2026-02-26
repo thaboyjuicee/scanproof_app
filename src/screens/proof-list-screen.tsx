@@ -417,7 +417,13 @@ export const ProofListScreen = (): React.JSX.Element => {
         <View style={styles.modalOverlay}>
           <ScrollView
             style={styles.modalCard}
-            contentContainerStyle={[styles.modalCardContent, { paddingBottom: Math.max(16, insets.bottom + 12) }]}
+            contentContainerStyle={[
+              styles.modalCardContent,
+              {
+                paddingBottom: Math.max(36, insets.bottom + 28),
+                flexGrow: 1,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.modalHeader}>
