@@ -43,8 +43,8 @@ export const CreateTemplatePickerScreen = (): React.JSX.Element => {
     },
     {
       key: 'ticket',
-      title: 'Redeemable Gate Pass',
-      description: 'Issue tickets that verifiers can redeem on-chain',
+      title: 'Gate Pass',
+      description: 'Issue multi-use passes with organizer signature verification',
       colors: ['#059669', '#14B8A6'] as const,
       Icon: Ticket,
       onPress: () => navigation.navigate('TicketCreate'),

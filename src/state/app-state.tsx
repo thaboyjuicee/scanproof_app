@@ -53,8 +53,6 @@ interface AppStateContextValue {
     venue?: string;
     validFrom: string;
     validTo: string;
-    recipientWallet?: string;
-    usageMode?: 'single' | 'multi';
   }) => Promise<ProofEnvelope<'ticket'> | null>;
   issueNotarizeEnvelope: (proof: Proof) => Promise<ProofEnvelope<'notarize'> | null>;
   encodeEnvelopeToQr: (envelope: AnyProofEnvelope) => string;
@@ -301,8 +299,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     venue?: string;
     validFrom: string;
     validTo: string;
-    recipientWallet?: string;
-    usageMode?: 'single' | 'multi';
   }): Promise<ProofEnvelope<'ticket'> | null> => {
     if (!walletSession) {
       setError('Connect wallet before issuing a ticket QR.');
@@ -320,8 +316,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
         venue: input.venue?.trim() || undefined,
         validFrom: input.validFrom,
         validTo: input.validTo,
-        recipientWallet: input.recipientWallet?.trim() || undefined,
-        usageMode: input.usageMode === 'multi' ? 'multi' : 'single',
+        usageMode: 'multi',
       };
 
       const payloadHash = services.ticketService.buildPayloadHash(unsignedPayload);

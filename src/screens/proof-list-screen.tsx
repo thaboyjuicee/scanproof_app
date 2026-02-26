@@ -39,7 +39,7 @@ interface ProofbookItem {
 const TYPE_CONFIG = {
   quest:    { color: '#7C3AED', lightBg: '#F5F3FF', borderColor: '#DDD6FE', label: 'Quest' },
   notarize: { color: '#2563EB', lightBg: '#EFF6FF', borderColor: '#BFDBFE', label: 'Notarized' },
-  ticket:   { color: '#059669', lightBg: '#ECFDF5', borderColor: '#A7F3D0', label: 'Ticket' },
+  ticket:   { color: '#059669', lightBg: '#ECFDF5', borderColor: '#A7F3D0', label: 'Pass' },
   legacy:   { color: '#6B7280', lightBg: '#F9FAFB', borderColor: '#E5E7EB', label: 'Proof' },
 } as const;
 
@@ -103,13 +103,13 @@ export const ProofListScreen = (): React.JSX.Element => {
       const title = item.type === 'quest'
         ? payload?.title ?? 'Quest'
         : item.type === 'ticket'
-          ? payload?.title ?? payload?.eventName ?? 'Ticket'
+          ? payload?.title ?? payload?.eventName ?? 'Pass'
           : payload?.title ?? 'Notarized File';
 
       const description = item.type === 'quest'
         ? payload?.label ?? 'Quest check-in'
         : item.type === 'ticket'
-          ? payload?.description ?? payload?.eventName ?? payload?.venue ?? 'Admission ticket'
+          ? payload?.description ?? payload?.eventName ?? payload?.venue ?? 'Admission pass'
           : payload?.description ?? 'Notarized file';
 
       return {
@@ -259,7 +259,7 @@ export const ProofListScreen = (): React.JSX.Element => {
         </View>
         <View style={[styles.statCard, { backgroundColor: TYPE_CONFIG.ticket.lightBg, borderColor: TYPE_CONFIG.ticket.borderColor }]}>
           <Text style={[styles.statValue, { color: TYPE_CONFIG.ticket.color }]}>{counts.tickets}</Text>
-          <Text style={[styles.statLabel, { color: TYPE_CONFIG.ticket.color }]}>Tickets</Text>
+          <Text style={[styles.statLabel, { color: TYPE_CONFIG.ticket.color }]}>Passes</Text>
         </View>
       </View>
 
@@ -271,7 +271,7 @@ export const ProofListScreen = (): React.JSX.Element => {
             style={[styles.tab, activeFilter === filter && styles.tabActive]}
           >
             <Text style={[styles.tabText, activeFilter === filter && styles.tabTextActive]}>
-              {filter === 'all' ? 'All' : filter === 'quest' ? 'Quests' : filter === 'notarize' ? 'Notarized' : 'Tickets'}
+              {filter === 'all' ? 'All' : filter === 'quest' ? 'Quests' : filter === 'notarize' ? 'Notarized' : 'Passes'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -284,7 +284,7 @@ export const ProofListScreen = (): React.JSX.Element => {
     <CardContainer style={styles.emptyCard}>
       <Feather name="book-open" size={40} color="#9ca3af" />
       <Text style={styles.emptyTitle}>No proofs yet</Text>
-      <Text style={styles.emptySubtitle}>Create your first quest, notarize a file, or issue a ticket.</Text>
+      <Text style={styles.emptySubtitle}>Create your first quest, notarize a file, or issue a pass.</Text>
       <GradientButton title="Create Your First Proof" icon="plus" onPress={() => navigation.navigate('CreateTab' as never)} />
     </CardContainer>
   );
@@ -304,7 +304,7 @@ export const ProofListScreen = (): React.JSX.Element => {
   const renderItem = ({ item }: { item: ProofbookItem }): React.JSX.Element => {
     const config = TYPE_CONFIG[item.type];
     const badgeLabel = item.type === 'ticket'
-      ? item.redeemed ? 'Redeemed' : 'Ticket'
+      ? item.redeemed ? 'Used' : 'Pass'
       : config.label;
 
     return (

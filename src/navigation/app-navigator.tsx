@@ -111,7 +111,7 @@ export const AppNavigator = (): React.JSX.Element => {
           component={TicketCreateScreen}
           options={{
             headerShown: true,
-            title: 'Redeemable Gate Pass',
+            title: 'Gate Pass',
             headerStyle: { backgroundColor: '#ffffff' },
             headerTintColor: '#111827',
           }}
@@ -151,7 +151,7 @@ export const AppNavigator = (): React.JSX.Element => {
           component={TicketVerifyRedeemScreen}
           options={{
             headerShown: true,
-            title: 'Ticket Verify / Redeem',
+            title: 'Gate Pass Verify',
             headerStyle: { backgroundColor: '#ffffff' },
             headerTintColor: '#111827',
           }}

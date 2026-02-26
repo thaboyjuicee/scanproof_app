@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 
-import { GradientButton, GradientText, VerifiedBadge } from '../components';
+import { GradientText, VerifiedBadge } from '../components';
 import { useProofs } from '../hooks/use-proofs';
 import { RootStackParamList } from '../types/navigation';
 
@@ -11,55 +12,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'TicketVerifyRedeem'>;
 
 export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element => {
   const { width } = useWindowDimensions();
-  const { verifyEnvelope, checkTicketRedeemed, redeemTicket, loading } = useProofs();
+  const { verifyEnvelope } = useProofs();
   const envelope = route.params.envelope;
   const verification = useMemo(() => verifyEnvelope(envelope), [verifyEnvelope, envelope]);
-  const isMultiUse = envelope.payload.usageMode === 'multi';
-  const [redeemed, setRedeemed] = useState<{ redeemed: boolean; signature?: string }>({ redeemed: false });
-  const [explorerUrl, setExplorerUrl] = useState<string | null>(null);
   const isCompact = width < 380;
-
-  const refreshRedeemed = useCallback(async (): Promise<void> => {
-    try {
-      const state = await checkTicketRedeemed(envelope);
-      setRedeemed(state);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed redemption lookup.';
-      Alert.alert('Lookup Error', message);
-    }
-  }, [checkTicketRedeemed, envelope]);
-
-  useEffect(() => {
-    void refreshRedeemed();
-  }, [refreshRedeemed]);
-
-  const onRedeem = async (): Promise<void> => {
-    try {
-      const result = await redeemTicket(envelope);
-      setExplorerUrl(result.explorerUrl);
-      Alert.alert('Redeemed', 'Ticket redeemed successfully on-chain.');
-      await refreshRedeemed();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Redeem failed.';
-      Alert.alert('Redeem Blocked', message);
-    }
-  };
-
-  const canRedeem = verification.isValid && (isMultiUse || !redeemed.redeemed);
 
   return (
     <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
-        <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Ticket Verify & Redeem</GradientText>
-        <Text style={styles.subtitle}>Verify organizer signature, expiry, and redemption state.</Text>
+        <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Gate Pass Verify</GradientText>
+        <Text style={styles.subtitle}>Verify organizer signature and validity window.</Text>
 
         <View style={styles.badges}>
           <VerifiedBadge label={verification.signatureValid ? 'Signature OK' : 'Bad Signature'} variant={verification.signatureValid ? 'success' : 'warning'} />
           <VerifiedBadge label={verification.timeWindowValid ? 'In Window' : 'Expired'} variant={verification.timeWindowValid ? 'success' : 'warning'} />
-          <VerifiedBadge
-            label={isMultiUse ? 'MULTI-USE' : redeemed.redeemed ? 'REDEEMED' : 'NOT REDEEMED'}
-            variant={isMultiUse ? 'success' : redeemed.redeemed ? 'warning' : 'success'}
-          />
+          <VerifiedBadge label="MULTI-USE" variant="success" />
         </View>
 
         <View style={styles.card}>
@@ -81,20 +48,8 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
           ) : null}
           <Text style={styles.label}>Validity</Text>
           <Text style={styles.value}>{new Date(envelope.payload.validFrom).toLocaleString()} - {new Date(envelope.payload.validTo).toLocaleString()}</Text>
-          {envelope.payload.recipientWallet ? (
-            <>
-              <Text style={styles.label}>Recipient Wallet</Text>
-              <Text style={styles.value}>{envelope.payload.recipientWallet}</Text>
-            </>
-          ) : null}
           <Text style={styles.label}>Usage Mode</Text>
-          <Text style={styles.value}>{isMultiUse ? 'Multi-use' : 'Single-use'}</Text>
-          {redeemed.signature ? (
-            <>
-              <Text style={styles.label}>Redemption Tx</Text>
-              <Text style={styles.value}>{redeemed.signature}</Text>
-            </>
-          ) : null}
+          <Text style={styles.value}>Multi-use</Text>
         </View>
 
         {verification.reasons.length > 0 ? (
@@ -105,15 +60,16 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
           </View>
         ) : null}
 
-        <GradientButton title={loading ? 'Redeeming...' : 'Redeem Ticket'} onPress={() => void onRedeem()} disabled={loading || !canRedeem} icon="check-circle" />
-
-        <GradientButton title="Refresh Redemption Status" onPress={() => void refreshRedeemed()} variant="secondary" icon="refresh-cw" />
-
-        {explorerUrl ? (
-          <TouchableOpacity style={styles.linkButton} onPress={() => void Linking.openURL(explorerUrl)}>
-            <Text style={styles.linkText}>View on Explorer</Text>
-          </TouchableOpacity>
-        ) : null}
+        <View style={styles.successBlock}>
+          <Feather
+            name={verification.isValid ? 'check-circle' : 'alert-triangle'}
+            size={28}
+            color={verification.isValid ? '#16a34a' : '#d97706'}
+          />
+          <Text style={styles.successText}>
+            {verification.isValid ? 'Pass verified successfully.' : 'Pass verification failed.'}
+          </Text>
+        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -145,12 +101,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   errorText: { color: '#991b1b', fontSize: 13 },
-  linkButton: {
+  successBlock: {
+    borderWidth: 1,
+    borderColor: '#d1fae5',
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    gap: 8,
   },
-  linkText: {
-    color: '#2563eb',
+  successText: {
+    color: '#166534',
     fontWeight: '700',
+    fontSize: 14,
   },
 });

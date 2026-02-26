@@ -23,8 +23,6 @@ export const TicketCreateScreen = (): React.JSX.Element => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'from' | 'to' | null>(null);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
-  const [recipientWallet, setRecipientWallet] = useState('');
-  const [usageMode, setUsageMode] = useState<'single' | 'multi'>('single');
   const [qrValue, setQrValue] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -42,12 +40,10 @@ export const TicketCreateScreen = (): React.JSX.Element => {
       venue,
       validFrom,
       validTo,
-      recipientWallet,
-      usageMode,
     });
 
     if (!envelope) {
-      Alert.alert('Error', 'Failed to create Ticket QR.');
+      Alert.alert('Error', 'Failed to create Gate Pass QR.');
       return;
     }
 
@@ -101,11 +97,11 @@ export const TicketCreateScreen = (): React.JSX.Element => {
     <>
       <LinearGradient colors={['#faf5ff', '#ffffff', '#eff6ff']} style={styles.gradient}>
         <ScrollView contentContainerStyle={[styles.container, { paddingBottom: Math.max(24, insets.bottom + 16) }]}>
-          <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Redeemable Gate Pass</GradientText>
-          <Text style={styles.subtitle}>Issue a ticket QR that can be redeemed on-chain.</Text>
+          <GradientText style={[styles.title, isCompact && styles.titleCompact]}>Gate Pass</GradientText>
+          <Text style={styles.subtitle}>Issue a multi-use gate pass QR.</Text>
 
-          <Text style={styles.label}>Ticket Title *</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Ticket title" placeholderTextColor="#9ca3af" />
+          <Text style={styles.label}>Pass Title *</Text>
+          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Pass title" placeholderTextColor="#9ca3af" />
 
           <Text style={styles.label}>Event Name *</Text>
           <TextInput style={styles.input} value={eventName} onChangeText={setEventName} placeholder="Event name" placeholderTextColor="#9ca3af" />
@@ -151,40 +147,9 @@ export const TicketCreateScreen = (): React.JSX.Element => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>Recipient Wallet (optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={recipientWallet}
-            onChangeText={setRecipientWallet}
-            autoCapitalize="none"
-            placeholder="Bind ticket to wallet"
-            placeholderTextColor="#9ca3af"
-          />
+          <Text style={styles.modeHint}>Gate passes are multi-use by default.</Text>
 
-          <Text style={styles.label}>Usage Mode</Text>
-          <View style={styles.modeRow}>
-            <TouchableOpacity
-              style={[styles.modeButton, usageMode === 'single' && styles.modeButtonActive]}
-              onPress={() => setUsageMode('single')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.modeButtonText, usageMode === 'single' && styles.modeButtonTextActive]}>Single-use</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeButton, usageMode === 'multi' && styles.modeButtonActive]}
-              onPress={() => setUsageMode('multi')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.modeButtonText, usageMode === 'multi' && styles.modeButtonTextActive]}>Multi-use</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.modeHint}>
-            {usageMode === 'single'
-              ? 'Single-use: first redemption locks the pass.'
-              : 'Multi-use: multiple attendees can redeem the same pass.'}
-          </Text>
-
-          <GradientButton title={loading ? 'Creating...' : 'Create Ticket QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="tag" />
+          <GradientButton title={loading ? 'Creating...' : 'Create Gate Pass QR'} onPress={() => void onCreate()} disabled={disabled || loading} icon="tag" />
         </ScrollView>
       </LinearGradient>
 
@@ -199,8 +164,8 @@ export const TicketCreateScreen = (): React.JSX.Element => {
 
       <ProofEnvelopeModal
         visible={visible}
-        title="Ticket QR Ready"
-        subtitle="Door verifier can scan this QR to redeem if valid."
+        title="Gate Pass QR Ready"
+        subtitle="Verifier can scan this QR to validate pass authenticity."
         qrValue={qrValue}
         qrType="ticket"
         onClose={() => setVisible(false)}
@@ -259,31 +224,6 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontWeight: '600',
     fontSize: 13,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  modeButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  modeButtonActive: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#F5F3FF',
-  },
-  modeButtonText: {
-    color: '#6b7280',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  modeButtonTextActive: {
-    color: '#7C3AED',
   },
   modeHint: {
     color: '#6b7280',

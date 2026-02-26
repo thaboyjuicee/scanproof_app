@@ -57,6 +57,15 @@ export class SolanaService {
     return Base64.fromUint8Array(new Uint8Array(serialized));
   }
 
+  async sendSignedTransactionBase64(serializedSignedTransactionBase64: string): Promise<string> {
+    const bytes = Base64.toUint8Array(serializedSignedTransactionBase64);
+    return this.connection.sendRawTransaction(Buffer.from(bytes), {
+      skipPreflight: false,
+      preflightCommitment: 'confirmed',
+      maxRetries: 3,
+    });
+  }
+
   async findRedemptionSignature(ticketId: string, timeoutMs = 12000): Promise<string | null> {
     const deadline = Date.now() + timeoutMs;
     const maxPages = 10; // Check up to 1000 transactions (10 pages × 100)

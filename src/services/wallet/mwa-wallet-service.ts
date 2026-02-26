@@ -16,6 +16,7 @@ interface WalletStorage {
 
 interface AccountValidator {
   isAccountValid(address: string): Promise<boolean>;
+  sendSignedTransactionBase64(serializedSignedTransactionBase64: string): Promise<string>;
 }
 
 const utf8Encode = (value: string): Uint8Array => new TextEncoder().encode(value);
@@ -137,12 +138,74 @@ export class MwaWalletService implements WalletService {
         identity: this.appIdentity,
       });
 
-      const result = await (wallet as any).signAndSendTransactions({
-        addresses: [uint8ArrayToBase64(addressBytes)],
-        payloads: [serializedTransactionBase64],
-      });
+      const walletAny = wallet as any;
+      const txBase64 = serializedTransactionBase64;
+      const txBytes = base64ToUint8Array(txBase64);
 
-      return result;
+      const attempts: Array<() => Promise<any>> = [
+        () => walletAny.signAndSendTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          payloads: [txBase64],
+        }),
+        () => walletAny.signAndSendTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          transactions: [txBase64],
+        }),
+        () => walletAny.signAndSendTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          payloads: [uint8ArrayToBase64(txBytes)],
+        }),
+        () => walletAny.signAndSendTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          transactions: [txBytes],
+        }),
+      ];
+
+      let lastError: unknown;
+      for (const attempt of attempts) {
+        try {
+          return await attempt();
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      const signAttempts: Array<() => Promise<any>> = [
+        () => walletAny.signTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          payloads: [txBase64],
+        }),
+        () => walletAny.signTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          transactions: [txBase64],
+        }),
+        () => walletAny.signTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          payloads: [uint8ArrayToBase64(txBytes)],
+        }),
+        () => walletAny.signTransactions({
+          addresses: [uint8ArrayToBase64(addressBytes)],
+          transactions: [txBytes],
+        }),
+      ];
+
+      let signResult: any;
+      for (const attempt of signAttempts) {
+        try {
+          signResult = await attempt();
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      const signedTxBase64 = this.extractSignedTransactionBase64(signResult);
+      if (!signedTxBase64) {
+        throw lastError ?? new AppError('Wallet transaction failed.', 'WALLET_TX_FAILED');
+      }
+
+      const signature = await this.solanaService.sendSignedTransactionBase64(signedTxBase64);
+      return { signatures: [signature] };
     });
 
     const signatures = (sendResult as any)?.signatures as string[] | undefined;
@@ -152,6 +215,27 @@ export class MwaWalletService implements WalletService {
 
     const first = signatures[0];
     return first.length > 80 ? first : base64ToString(first);
+  }
+
+  private extractSignedTransactionBase64(result: any): string | null {
+    const candidate = result?.signed_payloads?.[0] ?? result?.transactions?.[0] ?? result?.signedTransactions?.[0];
+    if (!candidate) {
+      return null;
+    }
+
+    if (typeof candidate === 'string') {
+      return candidate;
+    }
+
+    if (candidate instanceof Uint8Array) {
+      return uint8ArrayToBase64(candidate);
+    }
+
+    if (Array.isArray(candidate)) {
+      return uint8ArrayToBase64(new Uint8Array(candidate));
+    }
+
+    return null;
   }
 
   verifySignedPayload(payload: SignedPayload): boolean {
