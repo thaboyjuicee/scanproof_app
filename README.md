@@ -44,25 +44,17 @@ ScanProof provides mobile-first, cryptographic verification in a few taps:
 
 ## Screenshots
 
-| Home | Wallet Connect |
-|---|---|
-| <img src="docs/screenshots/home.png" alt="Home" width="240" /> | <img src="docs/screenshots/wallet-connect.png" alt="Wallet Connect" width="240" /> |
+| Home | Wallet Connect | Create Proof |
+|---|---|---|
+| <img src="docs/screenshots/home.png" alt="Home" width="220" /> | <img src="docs/screenshots/wallet-connect.png" alt="Wallet Connect" width="220" /> | <img src="docs/screenshots/create-proof.png" alt="Create Proof" width="220" /> |
 
-| Create Proof | Scan & Verify |
-|---|---|
-| <img src="docs/screenshots/create-proof.png" alt="Create Proof" width="240" /> | <img src="docs/screenshots/scan-verify.png" alt="Scan & Verify" width="240" /> |
+| Scan & Verify | Notarize Checker | Quest Claim |
+|---|---|---|
+| <img src="docs/screenshots/scan-verify.png" alt="Scan & Verify" width="220" /> | <img src="docs/screenshots/notarize-checker.png" alt="Notarize Checker" width="220" /> | <img src="docs/screenshots/quest-claim.png" alt="Quest Claim" width="220" /> |
 
-| Notarize Checker | Quest Claim |
-|---|---|
-| <img src="docs/screenshots/notarize-checker.png" alt="Notarize Checker" width="240" /> | <img src="docs/screenshots/quest-claim.png" alt="Quest Claim" width="240" /> |
-
-| Proofbook |
-|---|
-| <img src="docs/screenshots/proofbook.png" alt="Proofbook" width="240" /> |
-
-| Ticket / Pass Verify |
-|---|
-| <img src="docs/screenshots/ticket-pass-verify.png" alt="Ticket / Pass Verify" width="240" /> |
+| Proofbook | Ticket / Pass Verify | |
+|---|---|---|
+| <img src="docs/screenshots/proofbook.png" alt="Proofbook" width="220" /> | <img src="docs/screenshots/ticket-pass-verify.png" alt="Ticket / Pass Verify" width="220" /> | |
 
 ## Core Features
 
