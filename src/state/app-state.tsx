@@ -35,6 +35,7 @@ interface AppStateContextValue {
   createProof: (title: string, description: string, proofType: ProofType, uploadToIpfs: boolean, fileUri?: string) => Promise<Proof | null>;
   verifyProof: (proof: Proof) => VerificationResult;
   verifyMultipleProofs: (proofs: Proof[]) => VerificationResult[];
+  deleteProofbookItem: (id: string, type: 'legacy' | 'quest' | 'notarize' | 'ticket') => Promise<void>;
   createQuestEnvelope: (input: {
     title: string;
     description: string;
@@ -504,8 +505,15 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
 
     await services.storageService.saveQuestClaims(savedClaims);
 
+    const hasEnvelope = issuedEnvelopes.some((entry) => entry.id === envelope.id && entry.type === 'quest');
+    if (!hasEnvelope) {
+      const nextEnvelopes = [envelope, ...issuedEnvelopes];
+      setIssuedEnvelopes(nextEnvelopes);
+      await services.storageService.saveIssuedEnvelopes(nextEnvelopes);
+    }
+
     return record;
-  }, [walletSession, verifyEnvelope, questClaims]);
+  }, [walletSession, verifyEnvelope, questClaims, issuedEnvelopes]);
 
   const checkTicketRedeemed = useCallback(async (envelope: ProofEnvelope<'ticket'>): Promise<{ redeemed: boolean; signature?: string }> => {
     return withTimeout(
@@ -609,6 +617,54 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     return proofList.map(proof => services.verificationService.verifyProof(proof));
   }, []);
 
+  const deleteProofbookItem = useCallback(async (id: string, type: 'legacy' | 'quest' | 'notarize' | 'ticket'): Promise<void> => {
+    setLoading(true);
+    clearError();
+
+    try {
+      if (type === 'legacy') {
+        const nextProofs = proofs.filter((proof) => proof.id !== id);
+        setProofs(nextProofs);
+        await services.storageService.saveProofs(nextProofs);
+        return;
+      }
+
+      const nextEnvelopes = issuedEnvelopes.filter((entry) => !(entry.id === id && entry.type === type));
+      setIssuedEnvelopes(nextEnvelopes);
+
+      if (type === 'notarize') {
+        const nextProofs = proofs.filter((proof) => proof.id !== id);
+        setProofs(nextProofs);
+        await Promise.all([
+          services.storageService.saveIssuedEnvelopes(nextEnvelopes),
+          services.storageService.saveProofs(nextProofs),
+        ]);
+        return;
+      }
+
+      if (type === 'quest') {
+        const nextClaims = questClaims.filter((claim) => claim.envelopeId !== id);
+        setQuestClaims(nextClaims);
+        await Promise.all([
+          services.storageService.saveIssuedEnvelopes(nextEnvelopes),
+          services.storageService.saveQuestClaims(nextClaims),
+        ]);
+        return;
+      }
+
+      const nextRedemptions = ticketRedemptions.filter((entry) => entry.envelopeId !== id);
+      setTicketRedemptions(nextRedemptions);
+      await Promise.all([
+        services.storageService.saveIssuedEnvelopes(nextEnvelopes),
+        services.storageService.saveTicketRedemptions(nextRedemptions),
+      ]);
+    } catch (unknownError) {
+      handleError(unknownError);
+    } finally {
+      setLoading(false);
+    }
+  }, [clearError, handleError, issuedEnvelopes, proofs, questClaims, ticketRedemptions]);
+
   useEffect(() => {
     void (async () => {
       await loadProofs();
@@ -631,6 +687,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     createProof,
     verifyProof,
     verifyMultipleProofs,
+    deleteProofbookItem,
     createQuestEnvelope,
     createTicketEnvelope,
     issueNotarizeEnvelope,
@@ -658,6 +715,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     createProof,
     verifyProof,
     verifyMultipleProofs,
+    deleteProofbookItem,
     createQuestEnvelope,
     createTicketEnvelope,
     issueNotarizeEnvelope,

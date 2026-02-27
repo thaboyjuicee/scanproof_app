@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Proof } from '../models/proof';
@@ -22,6 +23,12 @@ export const QRModal = ({ visible, proof, qrValue, onClose }: QRModalProps): Rea
     ownerWallet: proof.ownerWallet,
     hash: proof.hash,
   });
+  const resolvedQrValue = qrValue ?? fallbackQrData;
+
+  const handleCopy = async (): Promise<void> => {
+    await Clipboard.setStringAsync(resolvedQrValue);
+    Alert.alert('Copied', 'QR payload copied to clipboard.');
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -37,11 +44,17 @@ export const QRModal = ({ visible, proof, qrValue, onClose }: QRModalProps): Rea
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.qrContainer}>
               <QRCode
-                value={qrValue ?? fallbackQrData}
+                value={resolvedQrValue}
                 size={280}
                 color="#222"
                 backgroundColor="#fff"
               />
+            </View>
+
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={[styles.actionButton, styles.copyButton]} onPress={() => void handleCopy()}>
+                <Text style={styles.copyButtonText}>Copy</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.proofInfo}>
@@ -127,6 +140,25 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  copyButton: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  copyButtonText: {
+    color: '#374151',
+    fontWeight: '700',
   },
   proofInfo: {
     gap: 12,

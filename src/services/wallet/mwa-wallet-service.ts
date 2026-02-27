@@ -90,17 +90,14 @@ export class MwaWalletService implements WalletService {
   async signMessage(message: string): Promise<SignedPayload> {
     const session = await this.requireSession();
     const messageBytes = utf8Encode(message);
-    const addressBytes = bs58.decode(session.walletAddress);
+    let signingWalletAddress = session.walletAddress;
 
     const signResult = await transact(async (wallet) => {
-      // Reauthorize with existing token
-      await wallet.reauthorize({
-        auth_token: session.sessionToken,
-        identity: this.appIdentity,
-      });
+      const auth = await this.ensureAuthorized(wallet as any, session);
+      signingWalletAddress = auth.walletAddress;
 
       const signatures = await wallet.signMessages({
-        addresses: [uint8ArrayToBase64(addressBytes)],
+        addresses: [auth.addressBase64],
         payloads: [uint8ArrayToBase64(messageBytes)],
       });
 
@@ -118,7 +115,7 @@ export class MwaWalletService implements WalletService {
     const signedPayload: SignedPayload = {
       message,
       signatureBase58,
-      walletAddress: session.walletAddress,
+      walletAddress: signingWalletAddress,
     };
 
     if (!this.verifySignedPayload(signedPayload)) {
@@ -130,13 +127,9 @@ export class MwaWalletService implements WalletService {
 
   async sendTransaction(serializedTransactionBase64: string): Promise<string> {
     const session = await this.requireSession();
-    const addressBytes = bs58.decode(session.walletAddress);
 
     const sendResult = await transact(async (wallet) => {
-      await wallet.reauthorize({
-        auth_token: session.sessionToken,
-        identity: this.appIdentity,
-      });
+      const auth = await this.ensureAuthorized(wallet as any, session);
 
       const walletAny = wallet as any;
       const txBase64 = serializedTransactionBase64;
@@ -144,19 +137,19 @@ export class MwaWalletService implements WalletService {
 
       const attempts: Array<() => Promise<any>> = [
         () => walletAny.signAndSendTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           payloads: [txBase64],
         }),
         () => walletAny.signAndSendTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           transactions: [txBase64],
         }),
         () => walletAny.signAndSendTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           payloads: [uint8ArrayToBase64(txBytes)],
         }),
         () => walletAny.signAndSendTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           transactions: [txBytes],
         }),
       ];
@@ -172,19 +165,19 @@ export class MwaWalletService implements WalletService {
 
       const signAttempts: Array<() => Promise<any>> = [
         () => walletAny.signTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           payloads: [txBase64],
         }),
         () => walletAny.signTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           transactions: [txBase64],
         }),
         () => walletAny.signTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           payloads: [uint8ArrayToBase64(txBytes)],
         }),
         () => walletAny.signTransactions({
-          addresses: [uint8ArrayToBase64(addressBytes)],
+          addresses: [auth.addressBase64],
           transactions: [txBytes],
         }),
       ];
@@ -215,6 +208,58 @@ export class MwaWalletService implements WalletService {
 
     const first = signatures[0];
     return first.length > 80 ? first : base64ToString(first);
+  }
+
+  private async ensureAuthorized(wallet: any, session: WalletSession): Promise<{ addressBase64: string; walletAddress: string }> {
+    try {
+      await wallet.reauthorize({
+        auth_token: session.sessionToken,
+        identity: this.appIdentity,
+      });
+
+      const addressBase64 = uint8ArrayToBase64(bs58.decode(session.walletAddress));
+      return {
+        addressBase64,
+        walletAddress: session.walletAddress,
+      };
+    } catch (error) {
+      if (!this.isAuthorizationFailure(error)) {
+        throw error;
+      }
+
+      const authorization = await wallet.authorize({
+        cluster: session.cluster,
+        identity: this.appIdentity,
+      });
+
+      if (!authorization.accounts || authorization.accounts.length === 0) {
+        throw new AppError('No wallet accounts returned from authorization.', 'WALLET_NO_ACCOUNTS');
+      }
+
+      const addressBase64 = authorization.accounts[0].address;
+      const addressBytes = base64ToUint8Array(addressBase64);
+      const walletAddress = bs58.encode(addressBytes);
+
+      const refreshedSession: WalletSession = {
+        ...session,
+        walletAddress,
+        sessionToken: authorization.auth_token,
+        connectedAtIso: new Date().toISOString(),
+      };
+
+      this.activeSession = refreshedSession;
+      await this.storage.saveWalletSession(refreshedSession);
+
+      return {
+        addressBase64,
+        walletAddress,
+      };
+    }
+  }
+
+  private isAuthorizationFailure(error: unknown): boolean {
+    const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+    return message.includes('authorization request failed') || message.includes('reauthorize');
   }
 
   private extractSignedTransactionBase64(result: any): string | null {

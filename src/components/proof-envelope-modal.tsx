@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { BrandedQrCard } from './BrandedQrCard';
 
 type EnvelopeQrType = 'quest' | 'ticket' | 'notarize' | 'default';
@@ -14,6 +15,15 @@ interface ProofEnvelopeModalProps {
 }
 
 export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType = 'default', onClose }: ProofEnvelopeModalProps): React.JSX.Element => {
+  const handleCopy = async (): Promise<void> => {
+    if (!qrValue) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(qrValue);
+    Alert.alert('Copied', 'QR payload copied to clipboard.');
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
@@ -28,6 +38,14 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType =
           ) : (
             <Text style={styles.errorText}>Unable to generate QR value.</Text>
           )}
+
+          {qrValue ? (
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={[styles.actionButton, styles.copyButton]} onPress={() => void handleCopy()}>
+                <Text style={styles.copyButtonText}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Close</Text>
@@ -75,6 +93,26 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#dc2626',
     fontSize: 14,
+  },
+  actionsRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  copyButton: {
+    backgroundColor: '#f5f3ff',
+    borderWidth: 1,
+    borderColor: '#ddd6fe',
+  },
+  copyButtonText: {
+    color: '#6d28d9',
+    fontWeight: '700',
   },
   button: {
     marginTop: 4,

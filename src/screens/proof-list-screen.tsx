@@ -1,12 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Alert, FlatList, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
-import * as Clipboard from 'expo-clipboard';
 import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 
@@ -34,6 +33,7 @@ interface ProofbookItem {
   badgeImageUrl?: string;
   solanaSignature?: string;
   redeemed?: boolean;
+  claimed?: boolean;
 }
 
 const TYPE_CONFIG = {
@@ -81,7 +81,7 @@ export const ProofListScreen = (): React.JSX.Element => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { walletSession, connectWallet } = useWallet();
-  const { proofs, issuedEnvelopes, ticketRedemptions, encodeEnvelopeToQr, loading } = useProofs();
+  const { proofs, issuedEnvelopes, questClaims, ticketRedemptions, encodeEnvelopeToQr, deleteProofbookItem, loading } = useProofs();
   const [activeFilter, setActiveFilter] = useState<ProofbookFilter>('all');
   const [selectedItem, setSelectedItem] = useState<ProofbookItem | null>(null);
   const downloadViewRef = useRef<View>(null);
@@ -98,6 +98,9 @@ export const ProofListScreen = (): React.JSX.Element => {
         : undefined;
       const redemption = item.type === 'ticket'
         ? ticketRedemptions.find((record) => record.envelopeId === item.id)
+        : undefined;
+      const claimed = item.type === 'quest'
+        ? questClaims.some((record) => record.envelopeId === item.id && record.walletAddress === walletSession?.walletAddress)
         : undefined;
 
       const title = item.type === 'quest'
@@ -127,6 +130,7 @@ export const ProofListScreen = (): React.JSX.Element => {
         qrValue: encodeEnvelopeToQr(item),
         badgeImageUrl: getBadgeImageUrl(item),
         redeemed,
+        claimed,
         solanaSignature: redemption?.txSignature,
       };
     });
@@ -143,7 +147,7 @@ export const ProofListScreen = (): React.JSX.Element => {
       }));
 
     return [...issuedItems, ...legacyItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [encodeEnvelopeToQr, issuedEnvelopes, proofs, ticketRedemptions]);
+  }, [encodeEnvelopeToQr, issuedEnvelopes, proofs, questClaims, ticketRedemptions, walletSession?.walletAddress]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === 'all') {
@@ -216,19 +220,29 @@ export const ProofListScreen = (): React.JSX.Element => {
     }
   }, []);
 
-  const handleShare = useCallback(async (item: ProofbookItem) => {
-    const url = getVerificationUrl(item);
-    try {
-      await Share.share({ message: url });
-    } catch {
-      await Clipboard.setStringAsync(url);
-      Alert.alert('Copied', 'Verification link copied to clipboard.');
-    }
-  }, [getVerificationUrl]);
-
   const handleView = useCallback((item: ProofbookItem) => {
     setSelectedItem(item);
   }, []);
+
+  const handleDelete = useCallback((item: ProofbookItem) => {
+    Alert.alert(
+      'Delete proof?',
+      'This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              await deleteProofbookItem(item.id, item.type);
+              setSelectedItem((current) => (current?.id === item.id ? null : current));
+            })();
+          },
+        },
+      ]
+    );
+  }, [deleteProofbookItem]);
 
   const renderHeader = (): React.JSX.Element => (
     <View style={styles.headerWrap}>
@@ -305,6 +319,8 @@ export const ProofListScreen = (): React.JSX.Element => {
     const config = TYPE_CONFIG[item.type];
     const badgeLabel = item.type === 'ticket'
       ? item.redeemed ? 'Used' : 'Pass'
+      : item.type === 'quest' && item.claimed
+        ? 'Claimed'
       : config.label;
 
     return (
@@ -318,9 +334,19 @@ export const ProofListScreen = (): React.JSX.Element => {
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardDescription} numberOfLines={2}>{item.description}</Text>
           </View>
-          <View style={[styles.typeBadge, { borderColor: config.borderColor, backgroundColor: config.lightBg }]}
+          <View style={[
+            styles.typeBadge,
+            { borderColor: config.borderColor, backgroundColor: config.lightBg },
+            item.type === 'quest' && item.claimed && styles.claimedBadge,
+          ]}
           >
-            <Text style={[styles.typeBadgeText, { color: config.color }]}>
+            <Text
+              style={[
+                styles.typeBadgeText,
+                { color: config.color },
+                item.type === 'quest' && item.claimed && styles.claimedBadgeText,
+              ]}
+            >
               {item.type === 'ticket' && item.redeemed ? '🔴 Redeemed' : `✓ ${badgeLabel}`}
             </Text>
           </View>
@@ -346,9 +372,9 @@ export const ProofListScreen = (): React.JSX.Element => {
             <Feather name="download" size={16} color="#7C3AED" />
             <Text style={styles.actionText}>Download</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => void handleShare(item)}>
-            <Feather name="share-2" size={16} color="#7C3AED" />
-            <Text style={styles.actionText}>Share</Text>
+          <TouchableOpacity style={[styles.actionButton, styles.deleteActionButton]} onPress={() => handleDelete(item)}>
+            <Feather name="trash-2" size={16} color="#dc2626" />
+            <Text style={[styles.actionText, styles.deleteActionText]}>Delete</Text>
           </TouchableOpacity>
         </View>
 
@@ -659,6 +685,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  claimedBadge: {
+    borderColor: '#86efac',
+    backgroundColor: '#f0fdf4',
+  },
+  claimedBadgeText: {
+    color: '#15803d',
+  },
   badgeImageWrap: {
     alignItems: 'center',
   },
@@ -705,6 +738,13 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontSize: 12,
     fontWeight: '600',
+  },
+  deleteActionButton: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+  },
+  deleteActionText: {
+    color: '#dc2626',
   },
   modalOverlay: {
     flex: 1,
