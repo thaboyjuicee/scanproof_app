@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { env } from '../config/env';
 import { QRModal } from '../components/qr-modal';
 import { useProofs } from '../hooks/use-proofs';
 import { RootStackParamList } from '../types/navigation';
@@ -18,6 +19,17 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
 
   const notarizeEnvelope = issuedEnvelopes.find((entry) => entry.type === 'notarize' && entry.id === proof.id);
   const standardizedQrValue = notarizeEnvelope ? encodeEnvelopeToQr(notarizeEnvelope) : undefined;
+  const explorerTxSignature = proof.signature?.trim();
+
+  const handleOpenExplorer = (): void => {
+    if (!explorerTxSignature) {
+      Alert.alert('Unavailable', 'No on-chain transaction signature available for this proof yet.');
+      return;
+    }
+
+    const clusterQuery = env.solanaCluster === 'mainnet-beta' ? '' : `?cluster=${encodeURIComponent(env.solanaCluster)}`;
+    void Linking.openURL(`${env.solanaExplorerBaseUrl}/tx/${explorerTxSignature}${clusterQuery}`);
+  };
 
   const formatDate = (isoString: string): string => {
     const date = new Date(isoString);
@@ -109,6 +121,10 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
             onPress={() => setQrModalVisible(true)}
             icon="maximize"
           />
+
+          <TouchableOpacity style={styles.explorerLinkWrap} onPress={handleOpenExplorer}>
+            <Text style={styles.explorerLink}>View on Solana Explorer ↗</Text>
+          </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
 
@@ -185,5 +201,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#faf5ff',
     padding: 8,
     borderRadius: 6,
+  },
+  explorerLinkWrap: {
+    alignItems: 'center',
+  },
+  explorerLink: {
+    color: '#7C3AED',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

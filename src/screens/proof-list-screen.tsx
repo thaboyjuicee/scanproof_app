@@ -75,6 +75,15 @@ const getBadgeImageUrl = (rawEnvelope?: unknown): string | undefined => {
   return typeof badge === 'string' ? badge : undefined;
 };
 
+const maybeExplorerSignature = (value?: string): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length >= 32 ? trimmed : undefined;
+};
+
 export const ProofListScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
@@ -144,6 +153,7 @@ export const ProofListScreen = (): React.JSX.Element => {
         description: proof.description,
         createdAt: proof.timestampIso,
         qrValue: proof.qrCode,
+        solanaSignature: maybeExplorerSignature(proof.signature),
       }));
 
     return [...issuedItems, ...legacyItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -181,6 +191,15 @@ export const ProofListScreen = (): React.JSX.Element => {
 
     return item.qrValue ?? 'scanproof://proof';
   }, []);
+
+  const handleOpenExplorer = useCallback((item: ProofbookItem) => {
+    if (!item.solanaSignature) {
+      Alert.alert('Unavailable', 'No on-chain transaction signature available for this proof yet.');
+      return;
+    }
+
+    void Linking.openURL(getVerificationUrl(item));
+  }, [getVerificationUrl]);
 
   const handleDownload = useCallback(async (item: ProofbookItem) => {
     try {
@@ -378,11 +397,9 @@ export const ProofListScreen = (): React.JSX.Element => {
           </TouchableOpacity>
         </View>
 
-        {item.solanaSignature ? (
-          <TouchableOpacity onPress={() => void Linking.openURL(getVerificationUrl(item))}>
-            <Text style={styles.explorerLink}>View on Solana Explorer ↗</Text>
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity onPress={() => handleOpenExplorer(item)}>
+          <Text style={styles.explorerLink}>View on Solana Explorer ↗</Text>
+        </TouchableOpacity>
       </View>
     );
   };
