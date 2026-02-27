@@ -46,23 +46,23 @@ ScanProof provides mobile-first, cryptographic verification in a few taps:
 
 | Home | Wallet Connect |
 |---|---|
-| ![Home](docs/screenshots/home.png) | ![Wallet Connect](docs/screenshots/wallet-connect.png) |
+| <img src="docs/screenshots/home.png" alt="Home" width="240" /> | <img src="docs/screenshots/wallet-connect.png" alt="Wallet Connect" width="240" /> |
 
 | Create Proof | Scan & Verify |
 |---|---|
-| ![Create Proof](docs/screenshots/create-proof.png) | ![Scan & Verify](docs/screenshots/scan-verify.png) |
+| <img src="docs/screenshots/create-proof.png" alt="Create Proof" width="240" /> | <img src="docs/screenshots/scan-verify.png" alt="Scan & Verify" width="240" /> |
 
 | Notarize Checker | Quest Claim |
 |---|---|
-| ![Notarize Checker](docs/screenshots/notarize-checker.png) | ![Quest Claim](docs/screenshots/quest-claim.png) |
+| <img src="docs/screenshots/notarize-checker.png" alt="Notarize Checker" width="240" /> | <img src="docs/screenshots/quest-claim.png" alt="Quest Claim" width="240" /> |
 
 | Proofbook |
 |---|
-| ![Proofbook](docs/screenshots/proofbook.png) |
+| <img src="docs/screenshots/proofbook.png" alt="Proofbook" width="240" /> |
 
 | Ticket / Pass Verify |
 |---|
-| ![Ticket / Pass Verify](docs/screenshots/ticket-pass-verify.png) |
+| <img src="docs/screenshots/ticket-pass-verify.png" alt="Ticket / Pass Verify" width="240" /> |
 
 ## Core Features
 
