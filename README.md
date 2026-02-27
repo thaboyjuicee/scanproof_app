@@ -44,21 +44,6 @@ ScanProof provides mobile-first, cryptographic verification in a few taps:
 
 ## Screenshots
 
-> Put screenshots near the top so judges and users instantly see the product.
-
-Create a folder: `docs/screenshots/` and add files with these names:
-
-- `home.png`
-- `wallet-connect.png`
-- `create-proof.png`
-- `scan-verify.png`
-- `notarize-checker.png`
-- `quest-claim.png`
-- `proofbook.png`
-- `ticket-pass-verify.png`
-
-Then keep this section as-is:
-
 | Home | Wallet Connect |
 |---|---|
 | ![Home](docs/screenshots/home.png) | ![Wallet Connect](docs/screenshots/wallet-connect.png) |
@@ -304,8 +289,6 @@ Output:
 - [ ] Store secrets securely (not in repo)
 - [ ] Verify install/update behavior on clean Android device
 
-> Note: current build file may still use debug signing for release; update before store submission.
-
 ## Troubleshooting
 
 ### Wallet app does not open
@@ -394,4 +377,3 @@ cd android
 
 ## License
 
-TBD (add project license before public release)
