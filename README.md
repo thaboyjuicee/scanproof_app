@@ -101,14 +101,17 @@ npx expo prebuild --platform android
 
 ## Step-by-step run instructions
 1. Install dependencies: `npm install`
-2. Set `app.json` `expo.extra.PINATA_JWT` for real IPFS uploads (required for `uploadProof`).
-3. Ensure an MWA-compatible wallet (Phantom, Solflare, Backpack, etc.) is installed on Android device/emulator.
-4. Start app: `npx expo start --android`
-5. Open **Wallet Connect** screen and tap **Connect + Sign In**.
-6. Choose your wallet and approve connection and signature.
-7. Back in app, confirm wallet address is shown as connected.
-8. Create proof from **Create Proof** (optionally upload to IPFS).
-9. Verify it from **Verify Proof** using proof id.
+2. Create local env file: `cp .env.example .env` (Windows PowerShell: `Copy-Item .env.example .env`).
+3. Set Pinata credentials in `.env`:
+  - `PINATA_JWT=...` **or**
+  - `PINATA_API_KEY=...` and `PINATA_API_SECRET=...`
+4. Ensure an MWA-compatible wallet (Phantom, Solflare, Backpack, etc.) is installed on Android device/emulator.
+5. Start app: `npx expo start --android`
+6. Open **Wallet Connect** screen and tap **Connect + Sign In**.
+7. Choose your wallet and approve connection and signature.
+8. Back in app, confirm wallet address is shown as connected.
+9. Create proof from **Create Proof** (optionally upload to IPFS).
+10. Verify it from **Verify Proof** using proof id.
 
 ## Verification checklist (wallet sign-in)
 - [ ] Android opens MWA-compatible wallet app from ScanProof.
@@ -134,5 +137,5 @@ npx expo prebuild --platform android
   - Stored session may be stale; disconnect and reconnect.
   - Verify Solana RPC availability (`SOLANA_RPC_URL`).
 - **IPFS upload fails**
-  - Ensure `PINATA_JWT` is configured.
+  - Ensure `PINATA_JWT` or `PINATA_API_KEY` + `PINATA_API_SECRET` is configured.
   - Check network and Pinata endpoint availability.

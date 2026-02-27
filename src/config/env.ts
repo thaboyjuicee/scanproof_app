@@ -9,6 +9,8 @@ export interface AppEnv {
   ipfsGatewayUrl: string;
   ipfsUploadUrl: string;
   pinataJwt?: string;
+  pinataApiKey?: string;
+  pinataApiSecret?: string;
 }
 
 const extra = Constants.expoConfig?.extra as Record<string, string | undefined> | undefined;
@@ -30,4 +32,6 @@ export const env: AppEnv = {
   ipfsGatewayUrl: extra?.IPFS_GATEWAY_URL ?? 'https://gateway.pinata.cloud/ipfs',
   ipfsUploadUrl: extra?.IPFS_UPLOAD_URL ?? 'https://api.pinata.cloud/pinning/pinJSONToIPFS',
   pinataJwt: extra?.PINATA_JWT,
+  pinataApiKey: extra?.PINATA_API_KEY,
+  pinataApiSecret: extra?.PINATA_API_SECRET,
 };

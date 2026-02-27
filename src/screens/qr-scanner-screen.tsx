@@ -97,7 +97,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
       const base64 = result.assets[0].base64;
 
       // Try to decode QR from image
-      const qrData = await decodeQRFromImageURI(imageURI, base64);
+      const qrData = await decodeQRFromImageURI(imageURI, base64 ?? undefined);
 
       if (!qrData) {
         Alert.alert(

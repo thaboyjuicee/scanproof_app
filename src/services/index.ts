@@ -17,7 +17,13 @@ export const services = {
   solanaService,
   envelopeService: new EnvelopeService(),
   ticketService: new TicketService(),
-  ipfsService: new IpfsService(env.ipfsUploadUrl, env.ipfsGatewayUrl, env.pinataJwt),
+  ipfsService: new IpfsService(
+    env.ipfsUploadUrl,
+    env.ipfsGatewayUrl,
+    env.pinataJwt,
+    env.pinataApiKey,
+    env.pinataApiSecret
+  ),
   proofService: new ProofService(),
   verificationService: new VerificationService(),
   fileUploadService: new FileUploadService(),

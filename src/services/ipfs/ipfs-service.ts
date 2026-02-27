@@ -9,12 +9,20 @@ export class IpfsService {
   constructor(
     private readonly uploadUrl: string,
     private readonly gatewayUrl: string,
-    private readonly pinataJwt?: string
+    private readonly pinataJwt?: string,
+    private readonly pinataApiKey?: string,
+    private readonly pinataApiSecret?: string
   ) {}
 
   async uploadProof(proof: Proof, timeoutMs = 15000): Promise<string> {
-    if (!this.pinataJwt) {
-      throw new AppError('Missing PINATA_JWT configuration for IPFS upload.', 'IPFS_CONFIG_MISSING');
+    const hasJwt = Boolean(this.pinataJwt);
+    const hasApiKeys = Boolean(this.pinataApiKey && this.pinataApiSecret);
+
+    if (!hasJwt && !hasApiKeys) {
+      throw new AppError(
+        'Missing Pinata configuration for IPFS upload. Set PINATA_JWT or PINATA_API_KEY + PINATA_API_SECRET.',
+        'IPFS_CONFIG_MISSING'
+      );
     }
 
     const controller = new AbortController();
@@ -23,12 +31,20 @@ export class IpfsService {
     }, timeoutMs);
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (hasJwt && this.pinataJwt) {
+        headers.Authorization = `Bearer ${this.pinataJwt}`;
+      } else if (this.pinataApiKey && this.pinataApiSecret) {
+        headers.pinata_api_key = this.pinataApiKey;
+        headers.pinata_secret_api_key = this.pinataApiSecret;
+      }
+
       const response = await fetch(this.uploadUrl, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.pinataJwt}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           pinataMetadata: {
             name: `scanproof-${proof.id}`,

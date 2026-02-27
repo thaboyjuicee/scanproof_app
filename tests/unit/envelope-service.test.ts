@@ -34,6 +34,7 @@ describe('EnvelopeService encode/decode + canonicalization', () => {
       issuedAt: '2026-02-20T10:00:00.000Z',
       issuerPublicKey: '6JYQ37kEE4g2ptXmWQKx3S5nqSDs8z3aJQj3sWQ2L5x9',
       payload: {
+        title: 'Summit Ticket',
         eventName: 'ScanProof Summit',
         venue: 'Solana Hall',
         validFrom: '2026-02-20T10:00:00.000Z',
@@ -58,6 +59,7 @@ describe('EnvelopeService encode/decode + canonicalization', () => {
       issuedAt: '2026-02-20T10:00:00.000Z',
       issuerPublicKey: 'issuer',
       payload: {
+        title: 'Event Ticket',
         eventName: 'Event',
         validFrom: '2026-02-20T10:00:00.000Z',
         validTo: '2026-02-21T10:00:00.000Z',
@@ -67,6 +69,7 @@ describe('EnvelopeService encode/decode + canonicalization', () => {
 
     const unsignedB = {
       payload: {
+        title: 'Event Ticket',
         payloadHash: 'hash123',
         validTo: '2026-02-21T10:00:00.000Z',
         eventName: 'Event',
