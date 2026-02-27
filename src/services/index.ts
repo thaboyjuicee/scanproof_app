@@ -26,7 +26,13 @@ export const services = {
   ),
   proofService: new ProofService(),
   verificationService: new VerificationService(),
-  fileUploadService: new FileUploadService(),
+  fileUploadService: new FileUploadService(
+    env.ipfsGatewayUrl,
+    undefined,
+    env.pinataJwt,
+    env.pinataApiKey,
+    env.pinataApiSecret
+  ),
   walletService: new MwaWalletService(
     storageService,
     solanaService,

@@ -253,6 +253,15 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
     clearError();
 
     try {
+      let badgeImageUrl = input.badgeImage?.trim() || undefined;
+      if (badgeImageUrl && (badgeImageUrl.startsWith('file://') || badgeImageUrl.startsWith('content://'))) {
+        const source = badgeImageUrl;
+        const fallbackExt = source.includes('.png') ? 'png' : source.includes('.jpg') || source.includes('.jpeg') ? 'jpg' : 'png';
+        const derivedName = source.split('/').pop() || `quest-badge-${Date.now()}.${fallbackExt}`;
+        const upload = await services.fileUploadService.uploadFile(source, derivedName);
+        badgeImageUrl = upload.url;
+      }
+
       const label = input.label?.trim() || input.community?.trim() || input.location?.trim() || undefined;
 
       const payload: QuestEnvelopePayload = {
@@ -261,7 +270,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }): R
         label,
         location: input.location?.trim() || undefined,
         community: input.community?.trim() || undefined,
-        badgeImage: input.badgeImage?.trim() || undefined,
+        badgeImage: badgeImageUrl,
         validFrom: input.validFrom,
         validTo: input.validTo,
         claimLimit: input.claimLimit,
