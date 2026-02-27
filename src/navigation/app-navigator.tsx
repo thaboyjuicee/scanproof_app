@@ -39,7 +39,7 @@ const BottomTabs = (): React.JSX.Element => {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
         headerShown: false,
@@ -73,7 +73,7 @@ const BottomTabs = (): React.JSX.Element => {
         name="ProofbookTab"
         component={ProofListScreen}
         options={{
-          tabBarLabel: 'Proofbook',
+          tabBarLabel: 'Proofs',
           tabBarIcon: ({ color, size }) => <Feather name="list" size={size} color={color} />,
         }}
       />
