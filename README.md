@@ -52,6 +52,7 @@ Create a folder: `docs/screenshots/` and add files with these names:
 - `wallet-connect.png`
 - `create-proof.png`
 - `scan-verify.png`
+- `proofbook.png`
 - `ticket-redeem.png`
 
 Then keep this section as-is:
@@ -63,6 +64,10 @@ Then keep this section as-is:
 | Create Proof | Scan & Verify |
 |---|---|
 | ![Create Proof](docs/screenshots/create-proof.png) | ![Scan & Verify](docs/screenshots/scan-verify.png) |
+
+| Proofbook |
+|---|
+| ![Proofbook](docs/screenshots/proofbook.png) |
 
 | Ticket Redeem |
 |---|
