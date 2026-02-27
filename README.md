@@ -40,7 +40,7 @@ ScanProof provides mobile-first, cryptographic verification in a few taps:
 - Connect wallet with Solana Mobile Wallet Adapter (MWA)
 - Sign proof envelopes with a real wallet key
 - Share/scan QR envelopes for instant verification
-- Redeem ticket flows with on-chain memo transactions on Solana
+- Verify ticket/pass validity using signature + expiration checks
 
 ## Screenshots
 
@@ -52,8 +52,10 @@ Create a folder: `docs/screenshots/` and add files with these names:
 - `wallet-connect.png`
 - `create-proof.png`
 - `scan-verify.png`
+- `notarize-checker.png`
+- `quest-claim.png`
 - `proofbook.png`
-- `ticket-redeem.png`
+- `ticket-pass-verify.png`
 
 Then keep this section as-is:
 
@@ -65,13 +67,17 @@ Then keep this section as-is:
 |---|---|
 | ![Create Proof](docs/screenshots/create-proof.png) | ![Scan & Verify](docs/screenshots/scan-verify.png) |
 
+| Notarize Checker | Quest Claim |
+|---|---|
+| ![Notarize Checker](docs/screenshots/notarize-checker.png) | ![Quest Claim](docs/screenshots/quest-claim.png) |
+
 | Proofbook |
 |---|
 | ![Proofbook](docs/screenshots/proofbook.png) |
 
-| Ticket Redeem |
+| Ticket / Pass Verify |
 |---|
-| ![Ticket Redeem](docs/screenshots/ticket-redeem.png) |
+| ![Ticket / Pass Verify](docs/screenshots/ticket-pass-verify.png) |
 
 ## Core Features
 
@@ -81,13 +87,12 @@ Then keep this section as-is:
 - Create proof artifacts with wallet signatures
 - QR encode/decode for portable proof envelopes
 - Verify envelope integrity and signer authenticity
-- Quest claim and ticket redemption experiences
+- Quest claim and ticket/pass validity verification experiences
 - Optional IPFS upload for proof payload storage
 
 ### Technical
 
 - Solana RPC integration using `@solana/web3.js`
-- Unsigned memo transaction creation + wallet signing + broadcast
 - Transaction confirmation checks and explorer links
 - Canonical JSON + SHA-256 payload hashing
 - Local persistence of sessions/proofs via AsyncStorage
@@ -222,14 +227,13 @@ Implementation references:
 ## Solana Network Flow
 
 - Current default cluster: `devnet`
-- App composes unsigned memo transactions for redemption
-- Wallet signs/sends transaction through MWA
-- App checks transaction confirmation with RPC status lookup
-- Explorer URL is generated with cluster-aware query params
+- App verifies ticket/pass authenticity via issuer signature checks
+- App verifies validity window using envelope expiration/time-window rules
+- Explorer links are used for signature context where available
 
-### Transaction lifecycle
+### Verification lifecycle
 
-`create unsigned tx` → `wallet sign/send` → `get signature` → `poll confirmation` → `persist redemption`
+`scan ticket/pass` → `decode envelope` → `verify issuer signature` → `check expiration window` → `return validity`
 
 Core service reference:
 
@@ -344,7 +348,7 @@ cd android
 
 - [ ] Functional Android APK attached
 - [ ] Public GitHub repository with source code
-- [ ] Demo video showing wallet + create + verify + on-chain action
+- [ ] Demo video showing wallet + create + verify + ticket/pass validity checks
 - [ ] Pitch deck / brief presentation
 - [ ] README updated with architecture + setup + run steps
 
