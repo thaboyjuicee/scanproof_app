@@ -45,3 +45,4 @@ yarn-error.*
 .idea/
 android/.idea/
 *.iml
+release/ScanProof-v1.0.0-release.apk
