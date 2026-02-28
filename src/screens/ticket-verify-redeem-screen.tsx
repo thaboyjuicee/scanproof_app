@@ -32,6 +32,8 @@ export const TicketVerifyRedeemScreen = ({ route }: Props): React.JSX.Element =>
         <View style={styles.card}>
           <Text style={styles.label}>Title</Text>
           <Text style={styles.value}>{envelope.payload.title}</Text>
+          <Text style={styles.label}>Creator Wallet</Text>
+          <Text style={styles.walletValue}>{envelope.issuerPublicKey}</Text>
           <Text style={styles.label}>Event</Text>
           <Text style={styles.value}>{envelope.payload.eventName}</Text>
           {envelope.payload.description ? (
@@ -92,6 +94,16 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 12, color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase' },
   value: { fontSize: 14, color: '#1f2937' },
+  walletValue: {
+    fontSize: 13,
+    color: '#111827',
+    fontFamily: 'monospace',
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginBottom: 4,
+  },
   errorCard: {
     backgroundColor: '#fef2f2',
     borderRadius: 12,
