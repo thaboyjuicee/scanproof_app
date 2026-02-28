@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 
 const nowIso = new Date().toISOString();
 const defaultValidTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -15,6 +16,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { createQuestEnvelope, encodeEnvelopeToQr, loading } = useProofs();
+  const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -45,7 +47,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
     });
 
     if (!envelope) {
-      Alert.alert('Error', 'Failed to create Quest QR.');
+      showToast({ title: 'Error', message: 'Failed to create Quest QR.', variant: 'error' });
       return;
     }
 
@@ -64,7 +66,7 @@ export const QuestCreateScreen = (): React.JSX.Element => {
         setBadgeImage(result.assets[0].uri);
       }
     } catch {
-      Alert.alert('Error', 'Failed to pick badge image.');
+      showToast({ title: 'Error', message: 'Failed to pick badge image.', variant: 'error' });
     }
   };
 

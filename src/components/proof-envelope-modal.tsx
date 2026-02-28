@@ -28,12 +28,12 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType =
     try {
       const permission = await MediaLibrary.requestPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Needed', 'Please allow photo access to save QR codes.');
+        showToast({ title: 'Permission Needed', message: 'Please allow photo access to save QR codes.', variant: 'error' });
         return;
       }
 
       if (!downloadViewRef.current) {
-        Alert.alert('Download Failed', 'Unable to generate QR image.');
+        showToast({ title: 'Download Failed', message: 'Unable to generate QR image.', variant: 'error' });
         return;
       }
 
@@ -45,13 +45,9 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType =
       });
 
       await MediaLibrary.saveToLibraryAsync(uri);
-      showToast({
-        title: 'Saved',
-        message: 'High-quality QR code saved to your photo library.',
-        variant: 'success',
-      });
+      Alert.alert('Saved', 'High-quality QR code saved to your photo library.');
     } catch {
-      Alert.alert('Download Failed', 'An error occurred while saving the QR code.');
+      showToast({ title: 'Download Failed', message: 'An error occurred while saving the QR code.', variant: 'error' });
     }
   };
 
@@ -83,6 +79,20 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType =
           </TouchableOpacity>
         </View>
       </View>
+
+      {qrValue ? (
+        <View style={styles.hiddenDownloadWrap}>
+          <View ref={downloadViewRef} collapsable={false}>
+            <BrandedQrCard
+              value={qrValue}
+              size={900}
+              type={qrType}
+              title={title}
+              subtitle={subtitle}
+            />
+          </View>
+        </View>
+      ) : null}
     </Modal>
   );
 };
@@ -155,5 +165,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: '700',
+  },
+  hiddenDownloadWrap: {
+    position: 'absolute',
+    left: -10000,
+    top: -10000,
+    opacity: 0,
   },
 });

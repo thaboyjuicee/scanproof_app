@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { env } from '../config/env';
 import { QRModal } from '../components/qr-modal';
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 import { RootStackParamList } from '../types/navigation';
 import { CardContainer, GradientButton, GradientText, VerifiedBadge } from '../components';
 
@@ -15,6 +16,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProofDetails'>;
 export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
   const { proof } = route.params;
   const { issuedEnvelopes, encodeEnvelopeToQr } = useProofs();
+  const { showToast } = useToast();
   const [qrModalVisible, setQrModalVisible] = useState(false);
 
   const notarizeEnvelope = issuedEnvelopes.find((entry) => entry.type === 'notarize' && entry.id === proof.id);
@@ -23,7 +25,7 @@ export const ProofDetailsScreen = ({ route }: Props): React.JSX.Element => {
 
   const handleOpenExplorer = (): void => {
     if (!explorerTxSignature) {
-      Alert.alert('Unavailable', 'No on-chain transaction signature available for this proof yet.');
+      showToast({ title: 'Unavailable', message: 'No on-chain transaction signature available for this proof yet.', variant: 'info' });
       return;
     }
 

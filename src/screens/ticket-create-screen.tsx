@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 
 const nowIso = new Date().toISOString();
 const defaultValidTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -14,6 +15,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { createTicketEnvelope, encodeEnvelopeToQr, loading } = useProofs();
+  const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
@@ -43,7 +45,7 @@ export const TicketCreateScreen = (): React.JSX.Element => {
     });
 
     if (!envelope) {
-      Alert.alert('Error', 'Failed to create Gate Pass QR.');
+      showToast({ title: 'Error', message: 'Failed to create Gate Pass QR.', variant: 'error' });
       return;
     }
 

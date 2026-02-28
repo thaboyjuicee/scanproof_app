@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 import { GradientButton, CardContainer } from '../components';
 import { RootStackParamList } from '../types/navigation';
 import { decodeQRFromImageURI } from '../utils/qr-from-image';
@@ -23,6 +24,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
   const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
   const { decodeEnvelopeFromQr, addScanHistory } = useProofs();
+  const { showToast } = useToast();
   const scanFrameSize = Math.min(300, Math.max(220, width - 72));
 
   useFocusEffect(
@@ -58,9 +60,9 @@ export const QRScannerScreen =  (): React.JSX.Element => {
         message: err instanceof Error ? err.message : 'Failed to parse QR code',
       });
 
-      Alert.alert('Error', 'Failed to parse QR code', [
-        { text: 'OK', onPress: () => { setScanned(false); setProcessing(false); } },
-      ]);
+      setScanned(false);
+      setProcessing(false);
+      showToast({ title: 'Error', message: 'Failed to parse QR code.', variant: 'error' });
     }
   };
 
@@ -76,7 +78,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
       
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'Please grant gallery access to upload QR codes');
+        showToast({ title: 'Permission Required', message: 'Please grant gallery access to upload QR codes.', variant: 'error' });
         setProcessing(false);
         return;
       }
@@ -100,11 +102,12 @@ export const QRScannerScreen =  (): React.JSX.Element => {
       const qrData = await decodeQRFromImageURI(imageURI, base64 ?? undefined);
 
       if (!qrData) {
-        Alert.alert(
-          'No QR Code Found',
-          'Could not find a valid QR code in the selected image. Please try a different image or use the camera scanner.',
-          [{ text: 'OK', onPress: () => setProcessing(false) }]
-        );
+        showToast({
+          title: 'No QR Code Found',
+          message: 'Could not find a valid QR code in the selected image.',
+          variant: 'info',
+        });
+        setProcessing(false);
         return;
       }
 
@@ -113,7 +116,7 @@ export const QRScannerScreen =  (): React.JSX.Element => {
       setProcessing(false);
       processQRData(qrData);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to process image');
+      showToast({ title: 'Error', message: err instanceof Error ? err.message : 'Failed to process image.', variant: 'error' });
       setProcessing(false);
     }
   };

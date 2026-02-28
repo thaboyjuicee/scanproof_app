@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { env } from '../config/env';
 import { GradientButton, GradientText, VerifiedBadge } from '../components';
 import { useProofs } from '../hooks/use-proofs';
 import { useToast } from '../state/toast-state';
@@ -27,7 +26,7 @@ export const QuestClaimVerifyScreen = ({ route }: Props): React.JSX.Element => {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Claim failed.';
-      Alert.alert('Claim Blocked', message);
+      showToast({ title: 'Claim Blocked', message, variant: 'error' });
     }
   };
 

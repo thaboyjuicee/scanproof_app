@@ -196,7 +196,7 @@ export const ProofListScreen = (): React.JSX.Element => {
 
   const handleOpenExplorer = useCallback((item: ProofbookItem) => {
     if (!item.solanaSignature) {
-      Alert.alert('Unavailable', 'No on-chain transaction signature available for this proof yet.');
+      showToast({ title: 'Unavailable', message: 'No on-chain transaction signature available for this proof yet.', variant: 'info' });
       return;
     }
 
@@ -207,7 +207,7 @@ export const ProofListScreen = (): React.JSX.Element => {
     try {
       const permission = await MediaLibrary.requestPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Needed', 'Please allow photo access to save QR codes.');
+        showToast({ title: 'Permission Needed', message: 'Please allow photo access to save QR codes.', variant: 'error' });
         return;
       }
 
@@ -218,7 +218,7 @@ export const ProofListScreen = (): React.JSX.Element => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       if (!downloadViewRef.current) {
-        Alert.alert('Download Failed', 'Unable to generate QR image.');
+        showToast({ title: 'Download Failed', message: 'Unable to generate QR image.', variant: 'error' });
         setItemToDownload(null);
         return;
       }
@@ -239,7 +239,7 @@ export const ProofListScreen = (): React.JSX.Element => {
       });
     } catch (error) {
       console.error('Download error:', error);
-      Alert.alert('Download Failed', 'An error occurred while saving the QR code.');
+      showToast({ title: 'Download Failed', message: 'An error occurred while saving the QR code.', variant: 'error' });
     } finally {
       setItemToDownload(null);
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
@@ -7,12 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { Proof, ProofType } from '../models/proof';
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 import { CardContainer, GradientButton, GradientText, ProofEnvelopeModal } from '../components';
 
 const PROOF_TYPES: ProofType[] = ['text', 'photo', 'document'];
 
 export const CreateProofScreen = (): React.JSX.Element => {
   const { createProof, issueNotarizeEnvelope, encodeEnvelopeToQr, loading, error, clearError } = useProofs();
+  const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [urlLink, setUrlLink] = useState('');
@@ -53,26 +55,26 @@ export const CreateProofScreen = (): React.JSX.Element => {
         setFileUri(uri);
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to pick file');
+      showToast({ title: 'Error', message: 'Failed to pick file.', variant: 'error' });
     }
   };
 
   const onCreate = async (): Promise<void> => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
+      showToast({ title: 'Error', message: 'Title is required.', variant: 'error' });
       return;
     }
 
     try {
       const nextProof = await createProof(title, description, proofType, uploadToIpfs, fileUri || undefined);
       if (!nextProof) {
-        Alert.alert('Error', 'Failed to create notarization proof.');
+        showToast({ title: 'Error', message: 'Failed to create notarization proof.', variant: 'error' });
         return;
       }
 
       const envelope = await issueNotarizeEnvelope(nextProof);
       if (!envelope) {
-        Alert.alert('Error', 'Proof saved but QR envelope could not be issued.');
+        showToast({ title: 'Error', message: 'Proof saved but QR envelope could not be issued.', variant: 'error' });
         return;
       }
 
@@ -86,7 +88,7 @@ export const CreateProofScreen = (): React.JSX.Element => {
       setFileUri(null);
       setProofType('text');
     } catch (err) {
-      Alert.alert('Error', 'Failed to create proof');
+      showToast({ title: 'Error', message: 'Failed to create proof.', variant: 'error' });
     }
   };
 
