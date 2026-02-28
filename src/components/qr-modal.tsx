@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
+import { useToast } from '../state/toast-state';
 
 import { Proof } from '../models/proof';
 
@@ -24,10 +25,15 @@ export const QRModal = ({ visible, proof, qrValue, onClose }: QRModalProps): Rea
     hash: proof.hash,
   });
   const resolvedQrValue = qrValue ?? fallbackQrData;
+  const { showToast } = useToast();
 
   const handleCopy = async (): Promise<void> => {
     await Clipboard.setStringAsync(resolvedQrValue);
-    Alert.alert('Copied', 'QR payload copied to clipboard.');
+    showToast({
+      title: 'Copied',
+      message: 'QR payload copied to clipboard.',
+      variant: 'info',
+    });
   };
 
   return (

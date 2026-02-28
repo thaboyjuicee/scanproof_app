@@ -11,6 +11,7 @@ import { captureRef } from 'react-native-view-shot';
 
 import { env } from '../config/env';
 import { useProofs } from '../hooks/use-proofs';
+import { useToast } from '../state/toast-state';
 import { useWallet } from '../hooks/use-wallet';
 import { BrandedQrCard, CardContainer, GradientButton, LoadingSkeleton } from '../components';
 
@@ -90,6 +91,7 @@ export const ProofListScreen = (): React.JSX.Element => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { walletSession, connectWallet } = useWallet();
+  const { showToast } = useToast();
   const { proofs, issuedEnvelopes, questClaims, ticketRedemptions, encodeEnvelopeToQr, deleteProofbookItem, loading } = useProofs();
   const [activeFilter, setActiveFilter] = useState<ProofbookFilter>('all');
   const [selectedItem, setSelectedItem] = useState<ProofbookItem | null>(null);
@@ -230,14 +232,18 @@ export const ProofListScreen = (): React.JSX.Element => {
       });
 
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert('Saved', 'High-quality QR code saved to your photo library.');
+      showToast({
+        title: 'Saved',
+        message: 'High-quality QR code saved to your photo library.',
+        variant: 'success',
+      });
     } catch (error) {
       console.error('Download error:', error);
       Alert.alert('Download Failed', 'An error occurred while saving the QR code.');
     } finally {
       setItemToDownload(null);
     }
-  }, []);
+  }, [showToast]);
 
   const handleView = useCallback((item: ProofbookItem) => {
     setSelectedItem(item);

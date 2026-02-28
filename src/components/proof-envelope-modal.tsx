@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
+import { useToast } from '../state/toast-state';
 import { BrandedQrCard } from './BrandedQrCard';
 
 type EnvelopeQrType = 'quest' | 'ticket' | 'notarize' | 'default';
@@ -17,6 +18,7 @@ interface ProofEnvelopeModalProps {
 
 export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType = 'default', onClose }: ProofEnvelopeModalProps): React.JSX.Element => {
   const downloadViewRef = useRef<View>(null);
+  const { showToast } = useToast();
 
   const handleDownload = async (): Promise<void> => {
     if (!qrValue) {
@@ -43,7 +45,11 @@ export const ProofEnvelopeModal = ({ visible, title, qrValue, subtitle, qrType =
       });
 
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert('Saved', 'High-quality QR code saved to your photo library.');
+      showToast({
+        title: 'Saved',
+        message: 'High-quality QR code saved to your photo library.',
+        variant: 'success',
+      });
     } catch {
       Alert.alert('Download Failed', 'An error occurred while saving the QR code.');
     }
