@@ -327,6 +327,13 @@ cd android
 - [ ] Pitch deck / brief presentation
 - [ ] README updated with architecture + setup + run steps
 
+### Submission Kit
+
+- Final checklist: `docs/submission/00-SUBMISSION-CHECKLIST.md`
+- Demo script: `docs/submission/01-DEMO-VIDEO-SCRIPT.md`
+- Pitch deck outline: `docs/submission/02-PITCH-DECK-OUTLINE.md`
+- Final handoff template: `docs/submission/03-FINAL-HANDOFF.md`
+
 ## Roadmap
 
 ### Devnet → Mainnet
