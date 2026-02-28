@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { env } from '../config/env';
 import { GradientButton, GradientText, VerifiedBadge } from '../components';
 import { useProofs } from '../hooks/use-proofs';
 import { RootStackParamList } from '../types/navigation';
@@ -17,7 +18,21 @@ export const QuestClaimVerifyScreen = ({ route }: Props): React.JSX.Element => {
   const onClaim = async (): Promise<void> => {
     try {
       const claim = await claimQuest(envelope);
-      Alert.alert('Claimed', `Quest saved to Proofbook.\nClaim ID: ${claim.id}`);
+      const clusterQuery = env.solanaCluster === 'mainnet-beta' ? '' : `?cluster=${encodeURIComponent(env.solanaCluster)}`;
+      const explorerUrl = claim.txSignature
+        ? `${env.solanaExplorerBaseUrl}/tx/${claim.txSignature}${clusterQuery}`
+        : undefined;
+
+      Alert.alert(
+        'Claimed',
+        `Quest saved to Proofbook.\nClaim ID: ${claim.id}`,
+        explorerUrl
+          ? [
+              { text: 'Close' },
+              { text: 'View on Explorer', onPress: () => { void Linking.openURL(explorerUrl); } },
+            ]
+          : [{ text: 'OK' }]
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Claim failed.';
       Alert.alert('Claim Blocked', message);

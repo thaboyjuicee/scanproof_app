@@ -7,6 +7,7 @@ export interface QuestClaimRecord {
   claimedAt: string;
   claimDateKey: string;
   claimSignature: string;
+  txSignature?: string;
 }
 
 export interface ScanHistoryRecord {

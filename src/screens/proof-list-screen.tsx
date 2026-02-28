@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Alert, FlatList, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -463,16 +463,18 @@ export const ProofListScreen = (): React.JSX.Element => {
             contentContainerStyle={[
               styles.modalCardContent,
               {
-                paddingBottom: Math.max(36, insets.bottom + 28),
-                flexGrow: 1,
+                paddingBottom: Platform.OS === 'android'
+                  ? Math.max(64, insets.bottom + tabBarHeight + 28)
+                  : Math.max(48, insets.bottom + 20),
               },
             ]}
+            scrollIndicatorInsets={{ bottom: Platform.OS === 'android' ? 64 : Math.max(48, insets.bottom + 20) }}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Proof Details</Text>
-              <TouchableOpacity onPress={() => setSelectedItem(null)}>
-                <Feather name="x" size={20} color="#6b7280" />
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setSelectedItem(null)}>
+                <Feather name="x" size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
 
@@ -540,7 +542,7 @@ export const ProofListScreen = (): React.JSX.Element => {
               <Text style={styles.modalInfoValue}>{selectedItem ? formatDate(selectedItem.createdAt) : ''}</Text>
             </View>
 
-            <GradientButton title="Close" onPress={() => setSelectedItem(null)} icon="x" variant="secondary" />
+            <View style={{ height: Platform.OS === 'android' ? 24 : Math.max(16, insets.bottom + 8) }} />
           </ScrollView>
         </View>
       </Modal>
@@ -782,6 +784,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  modalCloseButton: {
+    padding: 6,
   },
   modalTitle: {
     fontSize: 18,

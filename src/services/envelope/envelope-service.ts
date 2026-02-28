@@ -186,6 +186,7 @@ export class EnvelopeService {
       assignIfNonEmptyString(compact, 'lo', payload.location);
       assignIfNonEmptyString(compact, 'co', payload.community);
       assignIfNonEmptyString(compact, 'bi', payload.badgeImage);
+      assignIfNonEmptyString(compact, 'tx', payload.txSignature);
       return compact;
     }
 
@@ -201,6 +202,7 @@ export class EnvelopeService {
       assignIfNonEmptyString(compact, 'fn', payload.fileName);
       assignIfNonEmptyString(compact, 'fh', payload.fileHash);
       assignIfNonEmptyString(compact, 'ic', payload.ipfsCid);
+      assignIfNonEmptyString(compact, 'tx', payload.txSignature);
       return compact;
     }
 
@@ -215,6 +217,7 @@ export class EnvelopeService {
     assignIfNonEmptyString(compact, 've', payload.venue);
     assignIfNonEmptyString(compact, 'rw', payload.recipientWallet);
     assignIfNonEmptyString(compact, 'um', payload.usageMode);
+    assignIfNonEmptyString(compact, 'tx', payload.txSignature);
     return compact;
   }
 
@@ -231,6 +234,7 @@ export class EnvelopeService {
       assignIfString(expanded, 'location', payload.lo);
       assignIfString(expanded, 'community', payload.co);
       assignIfString(expanded, 'badgeImage', payload.bi);
+      assignIfString(expanded, 'txSignature', payload.tx);
       return expanded;
     }
 
@@ -246,6 +250,7 @@ export class EnvelopeService {
       assignIfString(expanded, 'fileName', payload.fn);
       assignIfString(expanded, 'fileHash', payload.fh);
       assignIfString(expanded, 'ipfsCid', payload.ic);
+      assignIfString(expanded, 'txSignature', payload.tx);
       return expanded;
     }
 
@@ -260,6 +265,7 @@ export class EnvelopeService {
     assignIfString(expanded, 'venue', payload.ve);
     assignIfString(expanded, 'recipientWallet', payload.rw);
     assignIfString(expanded, 'usageMode', payload.um);
+    assignIfString(expanded, 'txSignature', payload.tx);
     return expanded;
   }
 
@@ -343,12 +349,12 @@ export class EnvelopeService {
 
   private getOptionalPayloadKeys(type: ProofEnvelopeType): string[] {
     if (type === 'quest') {
-      return ['description', 'label', 'location', 'community', 'badgeImage'];
+      return ['description', 'label', 'location', 'community', 'badgeImage', 'txSignature'];
     }
     if (type === 'notarize') {
-      return ['fileName', 'fileHash', 'ipfsCid'];
+      return ['fileName', 'fileHash', 'ipfsCid', 'txSignature'];
     }
-    return ['description', 'venue', 'recipientWallet', 'usageMode'];
+    return ['description', 'venue', 'recipientWallet', 'usageMode', 'txSignature'];
   }
 
   assertValidEnvelope(value: unknown): asserts value is AnyProofEnvelope {
@@ -397,6 +403,10 @@ export class EnvelopeService {
     if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
       throw new AppError('Quest validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');
     }
+
+    if (payload.txSignature !== undefined && payload.txSignature !== null) {
+      ensureString(payload.txSignature, 'quest transaction signature');
+    }
   }
 
   private assertNotarizePayload(payload: Record<string, unknown>): void {
@@ -409,6 +419,10 @@ export class EnvelopeService {
     }
     if (!isIsoDateString(payload.timestampIso)) {
       throw new AppError('Notarize timestamp is invalid.', 'ENVELOPE_VALIDATION_ERROR');
+    }
+
+    if (payload.txSignature !== undefined && payload.txSignature !== null) {
+      ensureString(payload.txSignature, 'notarize transaction signature');
     }
   }
 
@@ -427,6 +441,10 @@ export class EnvelopeService {
     ensureString(payload.payloadHash, 'ticket payload hash');
     if (!isIsoDateString(payload.validFrom) || !isIsoDateString(payload.validTo)) {
       throw new AppError('Ticket validity window is invalid.', 'ENVELOPE_VALIDATION_ERROR');
+    }
+
+    if (payload.txSignature !== undefined && payload.txSignature !== null) {
+      ensureString(payload.txSignature, 'ticket transaction signature');
     }
   }
 }

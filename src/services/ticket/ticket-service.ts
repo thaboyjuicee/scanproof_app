@@ -8,7 +8,7 @@ export interface TicketRedemptionLookup {
 }
 
 export class TicketService {
-  buildPayloadHash(payload: Omit<TicketEnvelopePayload, 'payloadHash'>): string {
+  buildPayloadHash(payload: Omit<TicketEnvelopePayload, 'payloadHash' | 'txSignature'>): string {
     return sha256(canonicalJsonStringify(payload));
   }
 

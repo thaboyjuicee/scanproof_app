@@ -15,4 +15,5 @@ export interface Proof {
   qrCode?: string;
   signedMessage?: string;
   signature?: string;
+  transactionSignature?: string;
 }

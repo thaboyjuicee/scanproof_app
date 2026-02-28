@@ -12,6 +12,7 @@ export interface QuestEnvelopePayload {
   claimLimit: QuestClaimLimit;
   validFrom: string;
   validTo: string;
+  txSignature?: string;
 }
 
 export interface NotarizeEnvelopePayload {
@@ -24,6 +25,7 @@ export interface NotarizeEnvelopePayload {
   fileName?: string;
   fileHash?: string;
   ipfsCid?: string;
+  txSignature?: string;
 }
 
 export interface TicketEnvelopePayload {
@@ -36,6 +38,7 @@ export interface TicketEnvelopePayload {
   recipientWallet?: string;
   usageMode?: 'single' | 'multi';
   payloadHash: string;
+  txSignature?: string;
 }
 
 export type ProofEnvelopePayloadByType = {
