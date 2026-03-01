@@ -4,7 +4,7 @@
 [![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB.svg)](#tech-stack)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020.svg)](#tech-stack)
 [![Solana](https://img.shields.io/badge/Solana-Mobile%20Wallet%20Adapter-9945FF.svg)](#wallet-flow-mwa)
-[![License](https://img.shields.io/badge/license-TBD-lightgrey.svg)](#license)
+[![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey.svg)](#license)
 
 ScanProof is an Android-first Solana mobile app for issuing and verifying cryptographic QR proofs.
 It is designed for mobile-native flows: wallet connect/sign, camera scan, and on-chain confirmation.
@@ -64,7 +64,9 @@ ScanProof provides mobile-first, cryptographic verification in a few taps:
 - Create proof artifacts with wallet signatures
 - QR encode/decode for portable proof envelopes
 - Verify envelope integrity and signer authenticity
-- Quest claim and ticket/pass validity verification experiences
+- Notarize checker flow for proof validation
+- Quest claim flow with verification status checks
+- Ticket/pass validity verification experiences
 - Optional IPFS upload for proof payload storage
 
 ### Technical
@@ -375,4 +377,8 @@ cd android
 - Expo and React Native communities
 
 ## License
+
+This project is proprietary and is not licensed for public use.
+All rights are reserved by the copyright holder.
+See [LICENSE](LICENSE) for terms and permissions.
 

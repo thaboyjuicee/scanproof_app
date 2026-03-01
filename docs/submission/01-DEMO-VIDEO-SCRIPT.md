@@ -1,73 +1,91 @@
-# ScanProof — Demo Video Script (3–4 minutes)
+# ScanProof — Demo Video Narration Script (3–4 minutes)
 
-Target: fast, clear, no dead air.
+Use this as a direct voiceover script with matching on-screen actions.
 
 ## 0:00–0:20 — Hook
-
-"ScanProof is an Android-first Solana app for creating and verifying cryptographic QR proofs for real-world community actions."
 
 Show:
 - Home screen
 - Quick preview of proof types
 
+Narration:
+"On the home screen, I’m showing ScanProof and the available proof types. This is an Android-first Solana app where I can create a proof, generate a QR, and verify that proof in seconds."
+
 ## 0:20–0:45 — Problem + Audience
 
-Talk track:
-- Seeker users need portable trust for events, claims, and passes
-- Screenshots or static overlays are easy to fake
-- ScanProof uses wallet signatures and validity checks
+Show:
+- Problem context screen(s)
+- Event, claim, and pass examples
+
+Narration:
+"Here I’m showing why this matters: communities need portable trust for events, claims, and passes. A screenshot can be faked, but this app verifies real wallet-backed proof data with signature and validity checks."
 
 ## 0:45–1:20 — Wallet Connect (MWA)
 
 Show:
 - Wallet connect screen
-- Connect with MWA-compatible wallet
-- Successful connected state
+- Connect with an MWA-compatible wallet
+- Connected success state
 
-Narrate:
-- Mobile Wallet Adapter authorization
-- Signed authentication flow
+Narration:
+"Now I open Wallet Connect and connect with an MWA-compatible wallet. You can see authorization happen in the wallet, then I return to the app in a connected state after a signed authentication flow."
 
-## 1:20–2:10 — Core Product Flow
+## 1:20–2:50 — Detailed Product Flows (In Order)
 
-Show sequence:
-1. Create proof
-2. Display QR
-3. Scan and verify in app
-
-Narrate:
-- Envelope carries signed payload
-- Verification checks signature and integrity
-
-## 2:10–2:50 — Feature Highlights
+### 1) Notarize Flow
 
 Show:
-- Notarize checker flow
-- Quest claim flow
-- Ticket/pass verify flow
+- Open Create
+- Select Notarize
+- Fill proof details and generate QR
+- Scan QR on verify screen
+- Show verification result
 
-Narrate:
-- Ticket/pass is verification-first (signature + expiration)
-- No manual trust assumptions
+Narration:
+"First, I tap Create, choose Notarize, fill in the proof details, and generate the QR. On the verify screen, I scan that QR and show the verification result. At this step, the app checks payload integrity, validates the wallet signature, and confirms the proof hasn’t been altered."
+
+### 2) Gate Pass Flow
+
+Show:
+- Open Create
+- Select Gate Pass
+- Issue pass and display QR
+- Scan at door verify screen
+- Show claimed/redeemed result state
+
+Narration:
+"Second, I switch to the Gate Pass flow. I create the pass, display the pass QR, and scan it in the door verification screen. You can see the app validate the pass format, verify the signature, and check claim or redeem state before confirming entry."
+
+### 3) Quest Flow
+
+Show:
+- Open Create
+- Select Quest
+- Generate quest proof QR
+- Scan in quest claim/verify screen
+- Show claim verification status
+
+Narration:
+"Third, I open the Quest flow, create a quest proof, and generate the quest QR. Then I scan it in the quest claim and verify screen to show status in real time. The app verifies authenticity first and then confirms claim state, so rewards are tied to cryptographic proof instead of screenshots."
 
 ## 2:50–3:20 — Technical Credibility
 
 Show:
-- README section with architecture
-- Brief code snippet pan (wallet + verification services)
-- APK artifact path / install proof
+- README architecture section
+- Wallet and verification code pan
+- APK artifact and install proof
 
-Narrate:
-- Android-native app build
-- Solana + MWA integration
-- Mobile-first UX
+Narration:
+"On this screen I quickly show the architecture and verification code paths, then the APK install proof. This demonstrates an Android-native build with Solana and MWA integration focused on fast mobile verification."
 
 ## 3:20–3:40 — Close
 
-"ScanProof helps Seeker communities prove authenticity in seconds, on mobile, with cryptographic guarantees."
-
 Show:
-- Final branded screen + repo URL + demo/deck links
+- Final branded screen
+- Repo URL and demo/deck links
+
+Narration:
+"To close, I’m showing the final branded screen with project links. ScanProof helps communities prove authenticity in seconds on mobile, with cryptographic guarantees."
 
 ## Recording Checklist
 
